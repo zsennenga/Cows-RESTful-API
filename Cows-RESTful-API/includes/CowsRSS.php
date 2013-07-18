@@ -46,6 +46,9 @@ class cowsRss	{
 		else	{
 			$this->feed->handle_content_type();
 		}
+		if (!file_exists("../cache/last.txt"))	{
+			
+		}
 	}
 	/**
 	 * getRaw
@@ -71,10 +74,10 @@ class cowsRss	{
 	 * @return array
 	 */
 	function getData($accessTime)	{
-		$lastTime = file_get_contents("./cache/last.txt");
+		/*$lastTime = file_get_contents(CACHE_PATH . "last.txt");
 		if (strtotime($accessTime) < strtotime("+15 Minutes",$lastTime) && $lastTime != "")	{
-			return unserialize(file_get_contents("./cache/array.txt"));
-		}
+			return unserialize(file_get_contents("array.txt"));
+		}*/
 		$items = $this->feed->get_items();
 		//$i is -1 because we increment it and the begining of every foreach iteration. We want it to start at 0
 		$i = -1;
@@ -103,7 +106,7 @@ class cowsRss	{
 				$tok = strtok("\n");
 			}
 		}
-		$this->cache($out);
+		//$this->cache($out);
 		return $out;
 	}
 	/**
@@ -111,6 +114,8 @@ class cowsRss	{
 	 * cache
 	 * 
 	 * Braindead caching of the $out array from cows->getData() so we only hit the cows server once every 15 minutes or so.
+	 * 
+	 * Can't use this anymore, will see if caching is necessary later.
 	 * 
 	 * @param array $out
 	 */

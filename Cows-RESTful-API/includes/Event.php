@@ -201,11 +201,11 @@ class event	{
 	function toArray()	{
 		$out = array();
 		$out['title'] = $this->title;
-		$out['startTime']  = $this->$startTime;
-		$out['endTime']  = $this->$endTime;
-		$out['date']  = $this->$date;
-		$out['description']  = $this->$description;
-		$out['location']  = $this->$location;
+		$out['startTime']  = $this->startTime;
+		$out['endTime']  = $this->endTime;
+		$out['date']  = $this->date;
+		$out['description']  = $this->description;
+		$out['location']  = $this->location;
 		return $out;
 	}
 	/**

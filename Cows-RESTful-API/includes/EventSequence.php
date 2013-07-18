@@ -164,6 +164,20 @@ class eventSequence	{
 		return $str;
 	}
 	/**
+	 * toArray
+	 * 
+	 * Returns an array containing all of the events described by this eventSequence
+	 */
+	function toArray()	{
+		$retArray = array();
+		foreach ($this->eventList as $event)	{
+			if (!$event->isPast() || $this->displayPast)	{
+				array_push($retArray,$event->toArray());
+			}
+		}
+		return $retArray;
+	}
+	/**
 	 * getList
 	 * 
 	 * returns the internal eventList

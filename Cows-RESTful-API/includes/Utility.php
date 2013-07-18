@@ -9,4 +9,17 @@ define("ERROR_CAS", "-2");
 define("ERROR_EVENT", "-3");
 define("ERROR_CURL", "-4");
 define("ERROR_RSS", "-5");
+define("ERROR_PARAMETERS","-6");
+
+/**
+ * 
+ * Quick function to generate an array from an error code and error message
+ * 
+ * @param Error Code $code
+ * @param Error Message $message
+ * @return Error array
+ */
+function generateError($code, $message)	{
+	return array("code" => $code, "message" => $message);
+}
 ?>
