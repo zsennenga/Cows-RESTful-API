@@ -12,6 +12,7 @@ define("ERROR_RSS", "-5");
 define("ERROR_PARAMETERS","-6");
 define("DB_HOST", "localhost");
 define("DB_NAME", "CowsRESTDB");
+define("DB_TABLE", "CowsTable");
 define("DB_USER", "dbuser");
 define("DB_PASS", "dbpass");
 

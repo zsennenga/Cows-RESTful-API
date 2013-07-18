@@ -33,6 +33,10 @@ class CurlWrapper	{
 		curl_setopt($this->curlHandle, CURLOPT_SSL_VERIFYPEER, false);
 	}
 	
+	public function __destruct()	{
+		curl_close($this->curlHandle);
+	}
+	
 	/**
 	 * 
 	 * Executes a GET request with the given parameters.
@@ -77,6 +81,12 @@ class CurlWrapper	{
 	public function getLastError()	{
 		return curl_error($this->curlHandle);
 	}
-	
+	/**
+	 * Gets the cookieFile name
+	 * @return string
+	 */
+	public function getCookieFile()	{
+		return $this->cookieFile;
+	}
 }
 ?>
