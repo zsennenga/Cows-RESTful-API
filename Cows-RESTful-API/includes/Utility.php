@@ -30,4 +30,5 @@ function throwError($code,$message,$status = null)	{
 	$app = \Slim\Slim::getInstance();
 	$app->halt($status,generateError($code,$message));
 }
+
 ?>

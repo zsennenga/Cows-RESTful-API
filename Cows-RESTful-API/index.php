@@ -7,7 +7,9 @@
  *
  * If you are using Composer, you can skip this step.
  */
-if (!file_exists('includes/Utility.php'))
+if (!file_exists('includes/Config.php'))	{
+	echo "Please follow the Install instructions before running this application";
+}	
 require_once 'Slim/Slim.php';
 require_once 'includes/Utility.php';
 require_once 'includes/CowsRSS.php';
@@ -39,45 +41,41 @@ set_exception_handler('error_handler');
  */
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
-	//TODO list all services/access methods
+	if ($app->request()->params("json") !== false) $app->response()->setBody(json_encode($methods));
+	else $app->response()->setBody(file_get_contents("includes/methods.html"));
 });
 //DONE
-$app->map('/session/', function ()	{
+$app->post('/session/', function ()	{
 	$app = \Slim\Slim::getInstance();
-	$method = $app->request()->getMethod();
-	if ($method == 'DELETE')	{
-		$sess = $app->request()->params('sessionKey');
-		if ($sess === null)	throwError(ERROR_PARAMS,"This action requires a sessionKey");
-		$sess = new SessionWrapper($sess);
-		$sess->destroySession();
+	$curl = new CurlWrapper();
+	
+	$tgc = $app->request()->params('tgc');
+	if ($tgc === null)	{
+		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
 	}
-	else if ($method == 'POST')	{
-		$curl = new CurlWrapper();
-		
-		$tgc = $app->request()->params('tgc');
-		if ($tgc === null)	{
-			throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
-		}
-		else if (!$curl->validateTGC())	{
-			throwError(ERROR_CAS, "Invalid TGC",400);
-		}
-		
-		$siteId = $app->request()->params('siteid');
-		if ($siteId === null)	{
-			throwError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session",400);
-		}
-		else if (!$curl->validateSiteID())	{
-			throwError(ERROR_PARAMETERS, "Invalid site ID",400);
-		}
-		
-		$sess = SessionWrapper::createSession($tgc, $siteId);
-		$app->response()->setStatus(201);
-		$app->response()->setBody(json_encode(array('sessionKey' => $sess->getSessionKey())));
+	else if (!$curl->validateTGC())	{
+		throwError(ERROR_CAS, "Invalid TGC",400);
 	}
-	else	{
-		$app->response()->setStatus(501);
+	
+	$siteId = $app->request()->params('siteid');
+	if ($siteId === null)	{
+		throwError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session",400);
 	}
-})->via('POST','DELETE');
+	else if (!$curl->validateSiteID())	{
+		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
+	}
+	
+	$sess = SessionWrapper::createSession($tgc, $siteId);
+	$app->response()->setStatus(201);
+	$app->response()->setBody(json_encode(array('sessionKey' => $sess->getSessionKey())));
+
+});
+
+$app->delete('/session/:key/', function($key) {
+	$sess = new SessionWrapper($key);
+	$sess->destroySession();
+	$app->response()->status(200);
+});
 
 //TODO POST
 $app->map('/event/', function ()	{
@@ -161,15 +159,21 @@ $app->map('/event/', function ()	{
 	}
 })->via('GET','POST');
 
-//TODO GET, DELETE
-$app->map('/event/:id', function($id)	{
+//TODO GET
+$app->map('/event/:id/', function($id)	{
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
 	if ($method == 'GET')	{
 	
 	}
 	else if ($method == 'DELETE')	{
-	
+		if (!$app->request()->params('sessionKey') === false)	{
+			throwError(ERROR_PARAMETERS, "You must provite a sessionKey to access this interface",400);
+		}
+		$sess = new SessionWrapper($app->request()->params('sessionKey'));
+		$curl = new CurlWrapper($sess->getCookieFile());
+		$curl->deleteEvent($id);
+		$app->response()->setStatus(200);
 	}
 	else	{
 		$app->response()->setStatus(501);
