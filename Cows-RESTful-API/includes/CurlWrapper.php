@@ -21,15 +21,17 @@ class CurlWrapper	{
 	}
 	
 	public function __construct($cookieFile = null)	{
-		if ($cookieFile == null)	{
-			$this->cookieFile = genFilename();
-		}
-		else $this->cookieFile = $cookieFile;
 		$this->curlHandle = curl_init();
+		if ($cookieFile != "")	{
+			if ($cookieFile == null)	{
+				$this->cookieFile = genFilename();
+			}
+			else $this->cookieFile = $cookieFile;
+			curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, $this->cookieFile);
+			curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, $this->cookieFile);
+		}
 	
 		curl_setopt($this->curlHandle, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, $this->cookieFile);
-		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, $this->cookieFile);
 		curl_setopt($this->curlHandle, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($this->curlHandle, CURLOPT_SSL_VERIFYPEER, false);
 	}
@@ -188,6 +190,12 @@ class CurlWrapper	{
 	 *  @param Event id $id 
 	 */
 	public function deleteEvent($id)	{
+		//TODO this
+	}
+	/**
+	 * Gets an RSS feed that requires authentication
+	 */
+	public function getFeed()	{
 		//TODO this
 	}	
 }

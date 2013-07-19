@@ -8,6 +8,8 @@
  */
 
 require_once('simplepie/autoloader.php');
+require_once 'Utility.php';
+require_once 'Config.php';
 /**
  * cowsRss
  * 
@@ -35,20 +37,32 @@ class cowsRss	{
 	 * @param string $feedUrl
 	 * @throws SimplePie_Exception
 	 */
-	function __construct($feedUrl='http://cows.ucdavis.edu/ITS/event/rss?display=Front-TV')	{
+	function __construct()	{
 		$this->feed = new SimplePie();
-		$this->feed->set_feed_url($feedUrl);
 		$this->feed->strip_htmltags(false);
+	}
+	/**
+	 * Sets the feed source as a url
+	 * @param unknown $url
+	 */
+	function setFeedUrl($url)	{
+		$this->feed->set_feed_url($feedUrl);
 		$ec = $this->feed->init();
 		if (!$ec)	{
-			throw new Exception($this->feed->error());
+			throwError(ERROR_RSS,$this->feed->error());
 		}
-		else	{
-			$this->feed->handle_content_type();
+		$this->feed->handle_content_type();
+	}
+	/**
+	 * 
+	 */
+	function setFeedData($data)	{
+		$this->feed->set_raw_data($data);
+		$ec = $this->feed->init();
+		if (!$ec)	{
+			throwError(ERROR_RSS,$this->feed->error());
 		}
-		if (!file_exists("../cache/last.txt"))	{
-			
-		}
+		$this->feed->handle_content_type();
 	}
 	/**
 	 * getRaw

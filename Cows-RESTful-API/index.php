@@ -56,18 +56,18 @@ $app->map('/session/', function ()	{
 		
 		$tgc = $app->request()->params('tgc');
 		if ($tgc === null)	{
-			$app->halt(400,generateError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session"));
+			throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
 		}
 		else if (!$curl->validateTGC())	{
-			$app->halt(400,generateError(ERROR_CAS, "Invalid TGC"));
+			throwError(ERROR_CAS, "Invalid TGC",400);
 		}
 		
 		$siteId = $app->request()->params('siteid');
 		if ($siteId === null)	{
-			$app->halt(400,generateError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session"));
+			throwError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session",400);
 		}
 		else if (!$curl->validateSiteID())	{
-			$app->halt(400,generateError(ERROR_PARAMETERS, "Invalid site ID"));
+			throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 		}
 		
 		$sess = SessionWrapper::createSession($tgc, $siteId);
@@ -106,21 +106,36 @@ $app->map('/event/', function ()	{
 			$timeEnd = $_GET['timeEnd'];
 			unset($_GET['timeEnd']);
 			if (strtotime($timeStart) === false || strtotime($timeEnd) === false)	{
-				$app->halt(400, generateError(ERROR_PARAMETERS,"Invalid time range"));
+				throwError(ERROR_PARAMETERS, "Invalid time range", 400);
 			}
 		}
 		else if (isset($_GET['timeStart']) || isset($_GET['timeEnd']))	{
-			$app->halt(400, json_encode(
-					generateError(ERROR_PARAMETERS,"Time ranges must include both bounds")));
+				throwError(ERROR_PARAMETERS, "Time ranges must include both bounds", 400);
+		}
+		
+		if (isset($_GET['siteid']))	{
+			$curl = new CurlHandle("");
+			if (!$curl->validateSiteID($_GET['siteid']))	{
+				throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
+			}
+		}
+		else if (isset($_GET['sessionKey']))	{
+			$sess = new SessionWrapper($_GET['sessionKey']);
+		}
+		else	{
+			throwError(ERROR_PARAMETERS, "Must set sessionKey or SiteID",400);
 		}
 		
 		//Build RSS object
-		try	{
-			//Feed cows the whole batch of $_GET parameters
-			$cows = new cowsRss('http://cows.ucdavis.edu/ITS/event/atom?' . http_build_query($_GET));
+		//Feed cows the whole batch of $_GET parameters
+		if (!isset($sess))	{
+			$cows = new cowsRss();
+			$cows->setFeedUrl('http://cows.ucdavis.edu/' . $siteId . '/event/atom?' . http_build_query($_GET));
 		}
-		catch (Exception $e) {
-			$app->halt(500,json_encode(generateError(ERROR_RSS, $e->getMessage() )));
+		else {
+			$curl = new CurlHandle($sess->getSessionKey());
+			$cows = new CowsRss();
+			$cows->setFeedData($curl->getFeed($sess->getSiteId()));
 		}
 		if ($timeBounded)	{
 			$sequence = eventSequence::createSequenceFromArrayTimeBounded(
@@ -146,7 +161,7 @@ $app->map('/event/', function ()	{
 	}
 })->via('GET','POST');
 
-//TODO GET DELETE
+//TODO GET, DELETE
 $app->map('/event/:id', function($id)	{
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
