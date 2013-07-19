@@ -107,12 +107,12 @@ class CurlWrapper	{
 		return true;
 	}
 	/**
-	 * Checks if a siteID refers to a valid cows site
-	 * @param String $siteID
+	 * Checks if a siteId refers to a valid cows site
+	 * @param String $siteId
 	 * @return boolean
 	 */
-	public function validateSiteID($siteID)	{
-		$this->getWithParameters(COWS_BASE_PATH . $siteID);
+	public function validateSiteID($siteId)	{
+		$this->getWithParameters(COWS_BASE_PATH . $siteId);
 		$last = curl_getinfo($this->curlHandle, CURLINFO_EFFECTIVE_URL);
 		if (strpos($last,"aspxerrorpath") !== false)	return false;
 		return true;
@@ -149,12 +149,12 @@ class CurlWrapper	{
 	 * Executes a login to COWS
 	 * 
 	 * @param String $tgc
-	 * @param String $siteID
+	 * @param String $siteId
 	 * @return boolean
 	 */
-	public function cowsLogin($tgc, $siteID)	{
-		$returnURL = COWS_BASE_PATH . $siteID . "/";
-		$loginURL = COWS_BASE_PATH . $siteID . COWS_LOGIN_PATH;
+	public function cowsLogin($tgc, $siteId)	{
+		$returnURL = COWS_BASE_PATH . $siteId . "/";
+		$loginURL = COWS_BASE_PATH . $siteId . COWS_LOGIN_PATH;
 		
 		$service = $loginURL . "?returnUrl=" . $returnURL;
 		$ticket = $this->getTicket($tgc,$service);
@@ -172,9 +172,9 @@ class CurlWrapper	{
 	 * Gets the request verification token and other fields
 	 * from Cows via scraping the /event/create page
 	 */
-	public function getCowsFields($siteid)	{
+	public function getCowsFields($siteId)	{
 		if (!$this->loggedIn) throwError(ERROR_COWS,"Not logged in");
-		$out = $this->getWithParameters(COWS_BASE_PATH . $siteid . COWS_EVENT_PATH);
+		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH);
 		$doc = new DocumentWrapper($out);
 		return array(
 				"__RequestVerificationToken" => $doc->getField("__RequestVerificationToken"),
@@ -198,8 +198,8 @@ class CurlWrapper	{
 	 * 
 	 * @return boolean
 	 */
-	public function cowsLogout($siteID)	{
-		$this->getWithParameters(COWS_BASE_PATH . $siteID . COWS_LOGOUT_PATH);
+	public function cowsLogout($siteId)	{
+		$this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_LOGOUT_PATH);
 	}
 	/**
 	 * Executes a logout of CAS
@@ -213,13 +213,13 @@ class CurlWrapper	{
 	/**
 	 *  Deletes the event with the given id
 	 *  
-	 *  @param Site Id $siteid
+	 *  @param Site Id $siteId
 	 *  @param Event id $id 
 	 */
-	public function deleteEvent($siteid,$id)	{
-		$url = COWS_BASE_PATH . $siteid . COWS_DELETE_PATH;
+	public function deleteEvent($siteId,$id)	{
+		$url = COWS_BASE_PATH . $siteId . COWS_DELETE_PATH;
 		$params = array(
-				"SiteId" => $siteid,
+				"SiteId" => $siteId,
 				"EventId" => $id,
 				"__RequestVerificationToken" => $this->getRequestVerificationToken(),
 				"timestamp" => "AAAAAAAOH6s="
@@ -229,7 +229,7 @@ class CurlWrapper	{
 	/**
 	 * Gets an RSS feed that requires authentication
 	 */
-	public function getFeed($siteid, $params)	{
+	public function getFeed($siteId, $params)	{
 		return $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 	}
 	
@@ -260,6 +260,12 @@ class CurlWrapper	{
 		$out = $this->postWithParameters($url,$params);
 		$doc = new DocumentWrapper($out);
 		$doc->findCowsError();
+	}
+	
+	public function getSingleEvent($siteId, $eventId)	{
+		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH . "/details/" . $eventId);
+		$doc = new DocumentWrapper($out);
+		return $doc->parseEvent();
 	}
 }
 ?>

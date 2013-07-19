@@ -21,26 +21,9 @@ require_once 'includes/eventSequence.php';
 
 \Slim\Slim::registerAutoloader();
 
-/**
- * Step 2: Instantiate a Slim application
- *
- * This example instantiates a Slim application using
- * its default settings. However, you will usually configure
- * your Slim application now by passing an associative array
- * of setting names and values into the application constructor.
- */
 $app = new \Slim\Slim();
 
 set_exception_handler('error_handler');
-
-/**
- * Step 3: Define the Slim application routes
- *
- * Here we define several Slim application routes that respond
- * to appropriate HTTP request methods. In this example, the second
- * argument for `Slim::get`, `Slim::post`, `Slim::put`, `Slim::patch`, and `Slim::delete`
- * is an anonymous function.
- */
 
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
@@ -121,7 +104,6 @@ $app->delete('/session/:key/', function($key) {
 	$app->response()->status(200);
 });
 
-//TODO POST
 $app->map('/event/', function ()	{
 	
 	$app = \Slim\Slim::getInstance();
@@ -214,7 +196,17 @@ $app->map('/event/:id/', function($id)	{
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
 	if ($method == 'GET')	{
-	
+		if ($app->request()->get("sessionKey") !== false)	{
+			$sess = new SessionWrapper($app->request()->get("sessionKey"));
+			$curl = new CurlWrapper($sess->getCookieFile());
+			$siteId = $sess->getSiteId();
+		}
+		else	{
+			if ($app->request()->get("siteId") === false) throwError(ERROR_PARAMETERS, "SiteID must be set",400);
+			$curl = new CurlWrapper();
+			$siteId = $app->request()->get("siteId");
+		}
+		$curl->getSingleEvent($siteId, $id);
 	}
 	else if ($method == 'DELETE')	{
 		if (!$app->request()->get('sessionKey') === false)	{
@@ -230,10 +222,5 @@ $app->map('/event/:id/', function($id)	{
 	}
 })->via('GET','DELETE')->conditions(array('id' => '[0-9]'));
 
-/**
- * Step 4: Run the Slim application
- *
- * This method should be called last. This executes the Slim application
- * and returns the HTTP response to the HTTP client.
- */
+
 $app->run();
