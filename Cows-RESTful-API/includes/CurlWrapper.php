@@ -3,7 +3,6 @@ class CurlWrapper	{
 	private $curlHandle;
 	private $cookieFile;
 	private $response;
-	private $loggedIn = false;
 	
 	/**
 	 *
@@ -65,8 +64,8 @@ class CurlWrapper	{
 	 * 
 	 * Expects either a keyed array or a string built with http_build_query
 	 * 
-	 * @param unknown $url
-	 * @param unknown $parameters
+	 * @param String $url
+	 * @param String $parameters
 	 * @return mixed
 	 */
 	private function postWithParameters($url, $parameters = "")  {
@@ -126,7 +125,24 @@ class CurlWrapper	{
 	 * @return String
 	 */
 	private function getTicket($tgc, $service)	{
-		//TODO this
+		$params = array(
+			"service" => $service,
+			"pgt" => $tgc	
+		);
+		$out = $this->getWithParameters(CAS_PROXY_PATH,$params);
+		
+		//Quick and dirty parsing of the CAS response
+		if (strpos($out,"proxyFailure") === false)	{
+			$out = strip_tags($out);
+			$out = str_replace(' ', '', $out);
+			$out = str_replace('\n','', $out);
+			$out = str_replace('\t','', $out);
+			$out = str_replace('\r', '', $out);
+			return $out;
+		}	
+		else	{
+			throwError(ERROR_CAS, "Unable to get service ticket");
+		}
 	}
 	
 	/**
@@ -137,8 +153,6 @@ class CurlWrapper	{
 	 * @return boolean
 	 */
 	public function cowsLogin($tgc, $siteID)	{
-		if ($this->loggedIn) throwError(ERROR_COWS,"Already Logged in");
-		
 		$returnURL = COWS_BASE_PATH . $siteID . "/";
 		$loginURL = COWS_BASE_PATH . $siteID . COWS_LOGIN_PATH;
 		
@@ -151,20 +165,33 @@ class CurlWrapper	{
 		$out = getWithParameters($loginURL,$params);
 		$last = curl_getinfo($this->curlHandle, CURLINFO_EFFECTIVE_URL);
 		if (strpos($last,"cows.ucdavis.edu") === false)	{
-			return false;
-		}
-		else	{
-			$this->loggedIn = true;
-			return true;
+			throwError(ERROR_CAS, "Unable to login");
 		}
 	}
 	/**
 	 * Gets the request verification token and other fields
 	 * from Cows via scraping the /event/create page
 	 */
-	public function getCowsFields()	{
+	public function getCowsFields($siteid)	{
 		if (!$this->loggedIn) throwError(ERROR_COWS,"Not logged in");
-		//TODO
+		$out = $this->getWithParameters(COWS_BASE_PATH . $siteid . COWS_EVENT_PATH);
+		$doc = new DocumentWrapper($out);
+		return array(
+				"__RequestVerificationToken" => $doc->getField("__RequestVerificationToken"),
+				"ContactName" => $doc->getField("ContactName"),
+				"ContactEmail" => $doc->getField("ContactEmail"),
+				"EventStatusName" => $doc->getField("EventStatusName")
+		);
+	}
+	/**
+	 * Gets the requestVerificationToken from a specified URL
+	 * @param String $url
+	 * @return String $token
+	 */
+	private function getRequestVerificationToken($url)	{
+		$out = $this->getWithParameters($url);
+		$doc = new DocumentWrapper($out);
+		return $doc->getField("__RequestVerificationToken");
 	}
 	/**
 	 * Executes a logout of cows
@@ -172,7 +199,6 @@ class CurlWrapper	{
 	 * @return boolean
 	 */
 	public function cowsLogout($siteID)	{
-		if (!$this->loggedIn) throwError(ERROR_COWS,"Can't logout if not logged in");
 		$this->getWithParameters(COWS_BASE_PATH . $siteID . COWS_LOGOUT_PATH);
 	}
 	/**
@@ -187,16 +213,53 @@ class CurlWrapper	{
 	/**
 	 *  Deletes the event with the given id
 	 *  
+	 *  @param Site Id $siteid
 	 *  @param Event id $id 
 	 */
-	public function deleteEvent($id)	{
-		//TODO this
+	public function deleteEvent($siteid,$id)	{
+		$url = COWS_BASE_PATH . $siteid . COWS_DELETE_PATH;
+		$params = array(
+				"SiteId" => $siteid,
+				"EventId" => $id,
+				"__RequestVerificationToken" => $this->getRequestVerificationToken(),
+				"timestamp" => "AAAAAAAOH6s="
+		);
+		$this->postWithParameters($url,$params);
 	}
 	/**
 	 * Gets an RSS feed that requires authentication
 	 */
-	public function getFeed()	{
-		//TODO this
-	}	
+	public function getFeed($siteid, $params)	{
+		return $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
+	}
+	
+	public function createEvent($siteId,$params)	{
+		if (!$this->loggedIn) throwError(ERROR_GENERIC, "Must be logged in to create an event.");
+		if (!is_array($params)) throwError(ERROR_GENERIC, "Parameters for createEvent must be an array");
+		
+		if (!isset($params['Categories'])) throwError(ERROR_PARAMETERS, "Categories must be set",400);
+		$cat = urldecode($params['Categories']);
+		unset($params['Categories']);
+		if (strlen($cat) > 0) $cat = split("&",$cat);
+		$appendString = "";
+		foreach($cat as $str)	{
+			$appendString .= "&Categories=" . urlencode($str);
+		}
+		
+		if (isset($params['Locations']))	{
+			$loc = urldecode($params['Locations']);
+			unset($params['Locations']);
+			if (strlen($loc) > 0) $loc = split("&",$loc);
+			foreach($loc as $str)	{
+				$appendString .= "&DisplayLocations=" . urlencode($str);
+			}
+		}
+		
+		$url = COWS_BASE_PATH . $siteId . COWS_EVENT_PATH;
+		$params = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString;
+		$out = $this->postWithParameters($url,$params);
+		$doc = new DocumentWrapper($out);
+		$doc->findCowsError();
+	}
 }
 ?>

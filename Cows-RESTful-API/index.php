@@ -9,13 +9,15 @@
  */
 if (!file_exists('includes/Config.php'))	{
 	echo "Please follow the Install instructions before running this application";
+	exit(0);
 }	
 require_once 'Slim/Slim.php';
+require_once 'includes/config.php';
 require_once 'includes/Utility.php';
-require_once 'includes/CowsRSS.php';
-require_once 'includes/eventSequence.php';
 require_once 'includes/SessionWrapper.php';
 require_once 'includes/CurlWrapper.php';
+require_once 'includes/CowsRSS.php';
+require_once 'includes/eventSequence.php';
 
 \Slim\Slim::registerAutoloader();
 
@@ -39,17 +41,59 @@ set_exception_handler('error_handler');
  * argument for `Slim::get`, `Slim::post`, `Slim::put`, `Slim::patch`, and `Slim::delete`
  * is an anonymous function.
  */
+
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
-	if ($app->request()->params("json") !== false) $app->response()->setBody(json_encode($methods));
+	if ($app->request()->get("format") == "json") {
+		$session = array(
+				"POST" => array(
+						"requiresAuth" => false,
+						"requiredParameters" => "tgc,siteid",
+						"description" => "Generate a session key which will allow you to use COWS services which require authentication"
+				),
+		);
+		$sesskey = array(
+				"DELETE" => array(
+						"requiresAuth" => true,
+						"requiredParameters" => "",
+						"description" => "Destroys a session, and makes a good effort to log you out of COWS and CAS"
+				)
+		);
+		$event = array(
+				"GET" => array(
+						"requiresAuth" => true,
+						"requiredParameters" => "siteid OR sessionKey",
+						"description" => "Gets all events that meet the parameters given as GET parameters. Only requires auth if anonymous mode is off on the COWS site"
+				),
+				"POST" => array(
+						"requiresAuth" => true,
+						"requiredParameters" => "sessionKey, All Event Parameters",
+						"description" => "Creates an event with the given Parameters"
+				)
+		);
+		$eventid = array(
+				"GET" => array(
+						"requiresAuth" => true,
+						"requiredParameters" => "siteid OR sessionKey",
+						"description" => "Gets the information with the Event with the specified ID"
+				),
+				"DELETE" => array(
+						"requiresAuth" => true,
+						"requiredParameters" => "GET sessionKey",
+						"description" => "Deletes the event with the Specified ID"
+				)
+		);
+		$methods = array("/session" => $session, "/session/:key" => $sesskey, "/event" => $event, "/event/:id" => $eventid);
+		$app->response()->setBody(json_encode($methods));
+	}
 	else $app->response()->setBody(file_get_contents("includes/methods.html"));
 });
-//DONE
+
 $app->post('/session/', function ()	{
 	$app = \Slim\Slim::getInstance();
 	$curl = new CurlWrapper();
 	
-	$tgc = $app->request()->params('tgc');
+	$tgc = $app->request()->post('tgc');
 	if ($tgc === null)	{
 		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
 	}
@@ -57,7 +101,7 @@ $app->post('/session/', function ()	{
 		throwError(ERROR_CAS, "Invalid TGC",400);
 	}
 	
-	$siteId = $app->request()->params('siteid');
+	$siteId = $app->request()->post('siteid');
 	if ($siteId === null)	{
 		throwError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session",400);
 	}
@@ -128,12 +172,12 @@ $app->map('/event/', function ()	{
 		//Feed cows the whole batch of $_GET parameters
 		if (!isset($sess))	{
 			$cows = new cowsRss();
-			$cows->setFeedUrl('http://cows.ucdavis.edu/' . $siteId . '/event/atom?' . http_build_query($_GET));
+			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($_GET));
 		}
 		else {
 			$curl = new CurlHandle($sess->getSessionKey());
 			$cows = new CowsRss();
-			$cows->setFeedData($curl->getFeed($sess->getSiteId()));
+			$cows->setFeedData($curl->getFeed($sess->getSiteId(),$_GET));
 		}
 		if ($timeBounded)	{
 			$sequence = eventSequence::createSequenceFromArrayTimeBounded(
@@ -151,7 +195,13 @@ $app->map('/event/', function ()	{
 	}
 	
 	else if ($method == 'POST')	{
-	
+		$params = $app->request()->post();
+		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
+		$sess = new SessionHandler($params['sessionKey']);
+		unset($params['sessionKey']);
+		$curl = new CurlWrapper($sess->getCookieFile());
+		$curl->cowsLogin($sess->getTGC(), $sess->getSiteId());
+		$curl->createEvent($sess->getSiteId(), $params);
 	}
 	
 	else	{
@@ -167,10 +217,10 @@ $app->map('/event/:id/', function($id)	{
 	
 	}
 	else if ($method == 'DELETE')	{
-		if (!$app->request()->params('sessionKey') === false)	{
+		if (!$app->request()->get('sessionKey') === false)	{
 			throwError(ERROR_PARAMETERS, "You must provite a sessionKey to access this interface",400);
 		}
-		$sess = new SessionWrapper($app->request()->params('sessionKey'));
+		$sess = new SessionWrapper($app->request()->get('sessionKey'));
 		$curl = new CurlWrapper($sess->getCookieFile());
 		$curl->deleteEvent($id);
 		$app->response()->setStatus(200);
