@@ -7,6 +7,7 @@ define("DB_PASS", "dbpass");
 // DO NOT EDIT BELOW THIS LINE
 define("COWS_LOGIN_PATH","/Account/LogOn");
 define("COWS_EVENT_PATH","/Event/Create");
+define("COWS_BASE_EVENT_PATH","/Event");
 define("COWS_LOGOUT_PATH","/Account/LogOff");
 define("COWS_DELETE_PATH","/event/Delete");
 define("COWS_RSS_PATH","/event/atom");

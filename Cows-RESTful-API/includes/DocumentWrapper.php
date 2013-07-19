@@ -37,6 +37,34 @@ class DocumentWrapper	{
 		return $val;
 	}
 	
-	
+	public function parseEvent()	{
+		$retArray = array(
+				"title" => "",
+				"category" => "",
+				"startDate" => "",
+				"endDate" => "",
+				"startTime" => "",
+				"endTime" => "",
+				"building" => "",
+				"room" => ""
+		);
+		//TODO FIX THIS
+		$q = $this->doc->query('//div[@class="EventTypeName"]/display-field');
+		$retArray['category'] = $q->item(0);
+		$q = $this->doc->query('//div[@class="StartDate"]/display-field/date');
+		$retArray['startDate'] = $q->item(0)->nodeValue;
+		$q = $this->doc->query('//div[@class="StartDate"]/display-field/time');
+		$retArray['endDate'] = $q->item(0)->nodeValue;
+		$q = $this->doc->query('//div[@class="EndDate"]/display-field/date');
+		$retArray['startTime'] = $q->item(0)->nodeValue;
+		$q = $this->doc->query('//div[@class="EndDate"]/display-field/time');
+		$retArray['endTime'] = $q->item(0)->nodeValue;
+		$q = $this->doc->query('//div[@class="BuildingName"]/display-field');
+		$retArray['building'] = $q->item(0)->nodeValue;
+		$q = $this->doc->query('//div[@class="RoomName"]/display-field');
+		$retArray['room'] = $q->item(0)->nodeValue;
+		
+		return json_encode($retArray);
+	}
 }
 ?>

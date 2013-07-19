@@ -14,6 +14,7 @@ if (!file_exists('includes/Config.php'))	{
 require_once 'Slim/Slim.php';
 require_once 'includes/config.php';
 require_once 'includes/Utility.php';
+require_once 'includes/DocumentWrapper.php';
 require_once 'includes/SessionWrapper.php';
 require_once 'includes/CurlWrapper.php';
 require_once 'includes/CowsRSS.php';
@@ -72,7 +73,7 @@ $app->get('/', function()	{
 	else $app->response()->setBody(file_get_contents("includes/methods.html"));
 });
 
-$app->post('/session/', function ()	{
+$app->post('/session/:siteId/', function ($siteId)	{
 	$app = \Slim\Slim::getInstance();
 	$curl = new CurlWrapper();
 	
@@ -84,11 +85,7 @@ $app->post('/session/', function ()	{
 		throwError(ERROR_CAS, "Invalid TGC",400);
 	}
 	
-	$siteId = $app->request()->post('siteid');
-	if ($siteId === null)	{
-		throwError(ERROR_PARAMETERS, "You must include the siteID parameter to create a session",400);
-	}
-	else if (!$curl->validateSiteID())	{
+	if (!$curl->validateSiteID($siteId))	{
 		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 	}
 	
@@ -104,7 +101,7 @@ $app->delete('/session/:key/', function($key) {
 	$app->response()->status(200);
 });
 
-$app->map('/event/', function ()	{
+$app->map('/event/:siteId/', function ($siteId)	{
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
@@ -113,9 +110,6 @@ $app->map('/event/', function ()	{
 	$timeBounded = false;
 	
 	if ($method == 'GET')	{
-		
-		//Handle API specific GET parameters
-		
 		//Store and remove the ajax callback if necessary
 		if (isset($_GET['callback']))	{
 			$callback = $_GET['callback'];
@@ -136,12 +130,9 @@ $app->map('/event/', function ()	{
 		else if (isset($_GET['timeStart']) || isset($_GET['timeEnd']))	{
 				throwError(ERROR_PARAMETERS, "Time ranges must include both bounds", 400);
 		}
-		
-		if (isset($_GET['siteid']))	{
-			$curl = new CurlHandle("");
-			if (!$curl->validateSiteID($_GET['siteid']))	{
-				throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
-			}
+		$curl = new CurlHandle("");
+		if (!$curl->validateSiteID($siteId))	{
+			throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
 		}
 		else if (isset($_GET['sessionKey']))	{
 			$sess = new SessionWrapper($_GET['sessionKey']);
@@ -149,6 +140,7 @@ $app->map('/event/', function ()	{
 		else	{
 			throwError(ERROR_PARAMETERS, "Must set sessionKey or SiteID",400);
 		}
+		unset($curl);
 		
 		//Build RSS object
 		//Feed cows the whole batch of $_GET parameters
@@ -182,45 +174,42 @@ $app->map('/event/', function ()	{
 		$sess = new SessionHandler($params['sessionKey']);
 		unset($params['sessionKey']);
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->cowsLogin($sess->getTGC(), $sess->getSiteId());
-		$curl->createEvent($sess->getSiteId(), $params);
+		$curl->cowsLogin($sess->getTGC(), $siteId);
+		$curl->createEvent($siteId, $params);
 	}
-	
+
 	else	{
 		$app->response()->setStatus(501);
 	}
 })->via('GET','POST');
 
-//TODO GET
-$app->map('/event/:id/', function($id)	{
+$app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
+	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
+	
 	if ($method == 'GET')	{
-		if ($app->request()->get("sessionKey") !== false)	{
+		if ($app->request()->get("sessionKey") !== null)	{
 			$sess = new SessionWrapper($app->request()->get("sessionKey"));
 			$curl = new CurlWrapper($sess->getCookieFile());
-			$siteId = $sess->getSiteId();
 		}
 		else	{
-			if ($app->request()->get("siteId") === false) throwError(ERROR_PARAMETERS, "SiteID must be set",400);
 			$curl = new CurlWrapper();
-			$siteId = $app->request()->get("siteId");
 		}
-		$curl->getSingleEvent($siteId, $id);
+		$app->response()->setBody($curl->getSingleEvent($siteId, $eventId));
 	}
 	else if ($method == 'DELETE')	{
-		if (!$app->request()->get('sessionKey') === false)	{
+		if (!$app->request()->get('sessionKey') === null)	{
 			throwError(ERROR_PARAMETERS, "You must provite a sessionKey to access this interface",400);
 		}
 		$sess = new SessionWrapper($app->request()->get('sessionKey'));
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->deleteEvent($id);
+		$curl->deleteEvent($eventId);
 		$app->response()->setStatus(200);
 	}
 	else	{
 		$app->response()->setStatus(501);
 	}
 })->via('GET','DELETE')->conditions(array('id' => '[0-9]'));
-
 
 $app->run();

@@ -1,4 +1,5 @@
 <?php
+
 class CurlWrapper	{
 	private $curlHandle;
 	private $cookieFile;
@@ -264,6 +265,7 @@ class CurlWrapper	{
 	
 	public function getSingleEvent($siteId, $eventId)	{
 		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH . "/details/" . $eventId);
+		echo(COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/details/" . $eventId);
 		$doc = new DocumentWrapper($out);
 		return $doc->parseEvent();
 	}

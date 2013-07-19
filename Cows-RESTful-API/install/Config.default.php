@@ -7,8 +7,10 @@ define("DB_PASS", "dbpass");
 // DO NOT EDIT BELOW THIS LINE
 define("COWS_LOGIN_PATH","/Account/LogOn");
 define("COWS_EVENT_PATH","/Event/Create");
+define("COWS_BASE_EVENT_PATH","/Event");
 define("COWS_LOGOUT_PATH","/Account/LogOff");
-define("COWS_DELETE_PATH","/event/Delete/");
+define("COWS_DELETE_PATH","/event/Delete");
+define("COWS_RSS_PATH","/event/atom");
 define("CAS_PROXY_PATH","https://cas.ucdavis.edu/cas/proxy");
 define("CAS_LOGOUT_PATH","https://cas.ucdavis.edu/cas/logout");
 define("COWS_BASE_PATH","http://cows.ucdavis.edu/");
@@ -20,44 +22,4 @@ define("ERROR_RSS", "-5");
 define("ERROR_PARAMETERS","-6");
 define("ERROR_DB","-7");
 define("ERROR_COWS","-8");
-$session = array(
-		"POST" => array(
-				"requiresAuth" => false,
-				"requiredParameters" => "tgc,siteid",
-				"description" => "Generate a session key which will allow you to use COWS services which require authentication"
-		),
-);
-$sesskey = array(
-		"DELETE" => array(
-				"requiresAuth" => true,
-				"requiredParameters" => "",
-				"description" => "Destroys a session, and makes a good effort to log you out of COWS and CAS"
-		)
-);
-$event = array(
-		"GET" => array(
-				"requiresAuth" => true,
-				"requiredParameters" => "siteid OR sessionKey",
-				"description" => "Gets all events that meet the parameters given as GET parameters. Only requires auth if anonymous
-					mode is off on the COWS site"
-		),
-		"POST" => array(
-				"requiresAuth" => true,
-				"requiredParameters" => "sessionKey, All Event Parameters",
-				"description" => "Creates an event with the given Parameters"
-		)
-);
-$eventid = array(
-		"GET" => array(
-				"requiresAuth" => true,
-				"requiredParameters" => "siteid OR sessionKey",
-				"description" => "Gets the information with the Event with the specified ID"
-		),
-		"DELETE" => array(
-				"requiresAuth" => true,
-				"requiredParameters" => "GET sessionKey",
-				"description" => "Deletes the event with the Specified ID"
-		)
-);
-$methods = array("/session" => $session, "/session/:key" => $sesskey, "/event" => $event, "/event/:id" => $eventid);
 ?>
