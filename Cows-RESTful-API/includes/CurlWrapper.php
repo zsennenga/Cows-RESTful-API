@@ -3,6 +3,7 @@ class CurlWrapper	{
 	private $curlHandle;
 	private $cookieFile;
 	private $response;
+	private $loggedIn = false;
 	
 	/**
 	 *
@@ -46,13 +47,14 @@ class CurlWrapper	{
 	 * @param String $url
 	 * @param Array or String $parameters
 	 */
-	public function getWithParameters($url, $parameters)  {
+	private function getWithParameters($url, $parameters = "")  {
 		if (is_array($parameters))	{
 			$paramters = http_build_query($parameters);
 		}
 		curl_setopt($this->curlHandle, CURLOPT_HTTPGET, true);
 		curl_setopt($this->curlHandle, CURLOPT_URL, $url . "?" . $parameters);
 		$out = curl_exec($this->curlHandle);
+		if ($out === false) throwError(ERROR_CURL,curl_error($this->curlHandle));
 		return $out;
 	}
 	/**
@@ -65,13 +67,14 @@ class CurlWrapper	{
 	 * @param unknown $parameters
 	 * @return mixed
 	 */
-	public function postWithParameters($url, $parameters)  {
+	private function postWithParameters($url, $parameters = "")  {
 		if (is_array($parameters))	{
 			$paramters = http_build_query($parameters);
 		}
 		curl_setopt($this->curlHandle, CURLOPT_POST, true);
 		curl_setopt($this->curlHandle, CURLOPT_POSTFIELDS, $parameters);
 		$out = curl_exec($this->curlHandle);
+		if ($out === false) throwError(ERROR_CURL,curl_error($this->curlHandle));
 		return $out;
 	}
 	/**
@@ -88,5 +91,104 @@ class CurlWrapper	{
 	public function getCookieFile()	{
 		return $this->cookieFile;
 	}
+	
+	/**
+	 * Checks CAS to verify if a TGC can generate a ticket
+	 * 
+	 * @param String $tgc
+	 * @return boolean
+	 */
+	public function validateTGC($tgc)	{
+		$params = array("pgt" => $tgc,
+			  "targetService" => test);
+		$resp = $this->getWithParameters(CAS_PROXY_PATH, $params);
+		if (strpos($resp, 'proxyFailure') !== false)	return false;
+		return true;
+	}
+	/**
+	 * Checks if a siteID refers to a valid cows site
+	 * @param String $siteID
+	 * @return boolean
+	 */
+	public function validateSiteID($siteID)	{
+		$this->getWithParameters(COWS_BASE_PATH . $siteID);
+		$last = curl_getinfo($this->curlHandle, CURLINFO_EFFECTIVE_URL);
+		if (strpos($last,"aspxerrorpath") !== false)	return false;
+		return true;
+	}
+	/**
+	 * Uses a TicketGrantingCookie to generate a ServiceTicket for a given service
+	 * 
+	 * @param String $tgc
+	 * @param String $service
+	 * @return String
+	 */
+	private function getTicket($tgc, $service)	{
+		//TODO
+	}
+	
+	/**
+	 * Executes a login to COWS
+	 * 
+	 * @param String $tgc
+	 * @param String $siteID
+	 * @return boolean
+	 */
+	public function cowsLogin($tgc, $siteID)	{
+		if ($this->loggedIn) throwError(ERROR_COWS,"Already Logged in");
+		
+		$returnURL = COWS_BASE_PATH . $siteID . "/";
+		$loginURL = COWS_BASE_PATH . $siteID . COWS_LOGIN_PATH;
+		
+		$service = $loginURL . "?returnUrl=" . $returnURL;
+		$ticket = $this->getTicket($tgc,$service);
+		
+		$params = array("returnUrl" => $returnURL,
+				"ticket" => $ticket
+		);
+		$out = getWithParameters($loginURL,$params);
+		$last = curl_getinfo($this->curlHandle, CURLINFO_EFFECTIVE_URL);
+		if (strpos($last,"cows.ucdavis.edu") === false)	{
+			return false;
+		}
+		else	{
+			$this->loggedIn = true;
+			return true;
+		}
+	}
+	/**
+	 * Gets the request verification token and other fields
+	 * from Cows via scraping the /event/create page
+	 */
+	public function getCowsFields()	{
+		if (!$this->loggedIn) throwError(ERROR_COWS,"Not logged in");
+		//TODO
+	}
+	/**
+	 * Executes a logout of cows
+	 * 
+	 * @return boolean
+	 */
+	public function cowsLogout($siteID)	{
+		if (!$this->loggedIn) throwError(ERROR_COWS,"Can't logout if not logged in");
+		$this->getWithParameters(COWS_BASE_PATH . $siteID . COWS_LOGOUT_PATH);
+	}
+	/**
+	 * Executes a logout of CAS
+	 * 
+	 * @param Ticket Granting Cookie $tgc
+	 */
+	public function casLogout($tgc)	{
+		//TODO Set cookie CASTGC = $tgc
+		$this->getWithParameters(CAS_LOGOUT_PATH);
+	}
+	/**
+	 *  Deletes the event with the given id
+	 *  
+	 *  @param Event id $id 
+	 */
+	public function deleteEvent($id)	{
+		//TODO this
+	}	
 }
 ?>
