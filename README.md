@@ -5,9 +5,16 @@ A RESTful api used to interact with the UC Davis COmmunity Web Scheduler
 
 This is intended to replace Cows-TV-Server, Cows-Tablet-Server and Cows-Mobile-Server with a single, more unified API.
 
-Services Provided:
-  On failure, all routes return a json object including "code", the error code, and "message", the error message.
-  All Returns notes are only in reference to successful executions.
+##Services Provided##
+  On failure, all routes return a json object of the form:
+  ```json
+  {
+    "code" : "The error code",
+    "message" : "The error message"
+  }
+  ```
+  
+  All of the Returns entries in the following documentation only refer to successful executions.
 
   GET /
   
