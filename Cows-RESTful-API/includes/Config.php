@@ -1,9 +1,9 @@
 <?php
 define("DB_HOST", "localhost");
-define("DB_NAME", "CowsRESTDB");
-define("DB_TABLE", "CowsTable");
-define("DB_USER", "dbuser");
-define("DB_PASS", "dbpass");
+define("DB_NAME", "TestDB");
+define("DB_TABLE", "rest");
+define("DB_USER", "root");
+define("DB_PASS", "");
 // DO NOT EDIT BELOW THIS LINE
 define("COWS_LOGIN_PATH","/Account/LogOn");
 define("COWS_EVENT_PATH","/Event/Create");

@@ -1,6 +1,6 @@
 <?php
 define("DB_HOST", "localhost");
-define("DB_NAME", "CowsRESTDB");
+define("DB_NAME", "rest");
 define("DB_TABLE", "CowsTable");
 define("DB_USER", "dbuser");
 define("DB_PASS", "dbpass");
