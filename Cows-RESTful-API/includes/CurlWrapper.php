@@ -229,7 +229,10 @@ class CurlWrapper	{
 	 * @param Ticket Granting Cookie $tgc
 	 */
 	public function casLogout($tgc)	{
-		//TODO Set cookie CASTGC = $tgc
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, null);
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, null);
+
+		curl_setopt($this->curlHandle, CURLOPT_COOKIE, "CASTGC=" . $tgc);
 		$this->getWithParameters(CAS_LOGOUT_PATH);
 	}
 	/**
@@ -284,7 +287,13 @@ class CurlWrapper	{
 		$doc = new DocumentWrapper($out);
 		$doc->findCowsError();
 	}
-	
+	/**
+	 * Gets event data for a single event
+	 * 
+	 * @param string $siteId
+	 * @param string $eventId
+	 * @return string
+	 */
 	public function getSingleEvent($siteId, $eventId)	{
 		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/details/" . $eventId);
 		$doc = new DocumentWrapper($out);
