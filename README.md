@@ -73,6 +73,11 @@ This is intended to replace Cows-TV-Server, Cows-Tablet-Server and Cows-Mobile-S
 
 Cows Event Parameters:
 
+    (To be continued)
+
 Known Cows RSS Filters:
-        
+    
+    BuilingAndRoom
+    DisplayLocations
+    (To be continued)
   
