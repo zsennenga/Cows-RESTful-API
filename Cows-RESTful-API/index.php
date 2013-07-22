@@ -26,6 +26,9 @@ $app = new \Slim\Slim();
 
 set_exception_handler('error_handler');
 
+$app->response()->body(json_encode(array()));
+$app->contentType('application/json');
+
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
 	if ($app->request()->get("format") == "json") {
@@ -208,5 +211,10 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		$app->response()->setStatus(501);
 	}
 })->via('GET','DELETE')->conditions(array('id' => '[0-9]'));
+
+$app->notFound(function ()	{
+	$app = \Slim\Slim::getInstance();
+	throwError(ERROR_GENERIC, "Invalid Route. Please refer to the documentation for a list of valid routes.", 404);
+});
 
 $app->run();
