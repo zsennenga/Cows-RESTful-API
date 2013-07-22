@@ -66,7 +66,11 @@ $app->get('/', function()	{
 		$methods = array("/session/:siteId" => $session, "/session/:key" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
 		$app->response()->setBody(json_encode($methods));
 	}
-	else $app->response()->setBody(file_get_contents("includes/methods.html"));
+	else {
+		$app->contentType('text/html');
+		$app->response()->setBody(file_get_contents("includes/methods.html"));
+	}
+	
 });
 
 $app->post('/session/:siteId/', function ($siteId)	{

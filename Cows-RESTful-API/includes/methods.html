@@ -1,10 +1,157 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Insert title here</title>
-</head>
-<body>
 
-</body>
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type='text/javascript' src='http://assets.markdown.io//script.min.js'></script> 
+  	
+  	<!--
+  		to avoid DOM flickering, hide the whole page as early as possible
+  		we will remove the md-hidden-load class upon page load completion
+  	  --> 
+    <style type='text/css'>
+    	.md-hidden-load { display: none; }
+    </style>
+    <script type='text/javascript'>
+    	$("html").addClass ("md-hidden-load");
+    </script>
+    
+    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <link rel="stylesheet" href="http://yandex.st/highlightjs/7.2/styles/solarized_dark.min.css">
+    <link rel="stylesheet" href="http://assets.markdown.io//css/colorbox.css">
+    <base href="http://markdown.io/_theme=spacelab/_title=/https://raw.github.com/zsennenga/Cows-RESTful-API/master/README.md"></base>
+
+    	    		    <script type='text/javascript' src='http://netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/js/bootstrap.min.js'></script>
+    			    <script type='text/javascript' src='http://assets.markdown.io/themes/bootstrap-assets/common.js'></script>
+    			    <script type='text/javascript' src='http://assets.markdown.io/themes/bootstrap-assets/spacelab.js'></script>
+    	 
+    	
+	     
+    
+    		
+	    				<link rel='stylesheet' type='text/css' href='http://netdna.bootstrapcdn.com/bootswatch/2.1.0/spacelab/bootstrap.min.css'></link>
+				
+    					<link rel='stylesheet' type='text/css' href='http://assets.markdown.io/themes/bootstrap-assets/common.css'></link>
+				
+    					<link rel='stylesheet' type='text/css' href='http://assets.markdown.io/themes/bootstrap-assets/spacelab.css'></link>
+				
+    	    	
+     
+   	
+  		
+  </head>
+  <body>
+	<div id="md-body">	
+		<div id="md-title">
+		  			</div>	
+
+	    	    
+	    <div id="md-content">
+	    <h1>Cows-RESTful-API</h1>
+
+<p>A RESTful api used to interact with the UC Davis COmmunity Web Scheduler</p>
+
+<p>This is intended to replace Cows-TV-Server, Cows-Tablet-Server and Cows-Mobile-Server with a single, more unified API.</p>
+
+<h2>Services Provided</h2>
+
+<p>On failure, all routes return a json object of the form:<br />
+  </p>
+
+<pre><code>json
+  {
+    "code" : "The error code",
+    "message" : "The error message"
+  }
+  
+</code></pre>
+
+<p>All of the Returns entries in the following documentation only refer to successful executions.</p>
+
+<p>GET /</p>
+
+<pre><code>  Paramaters: format
+  Returns: API documentation
+  Authentication?: No
+  Description: Outputs API documentation in the specified format (currently json or plain (by default)).
+</code></pre>
+
+<p>GET /error</p>
+
+<pre><code>  Paramaters: None
+  Returns: Error documentation
+  Authentication?: No
+  Description: Returns a mapping of error codes to the error type in json format.
+</code></pre>
+
+<p>POST /session/:siteId</p>
+
+<pre><code>  Parameters: tgc - Ticket Granting Cookie from CAS (required)
+  Returns: SessionKey
+  Authentication?: No
+  Description: Used to generate a key to authenticate to any cows service that requires it.
+</code></pre>
+
+<p>DELETE /session/:sessionKey</p>
+
+<pre><code>  Required Parameters: none
+  Returns: Nothing
+  Description: Deactivates a session key, and logs you out from cows, and from the cas session represented by
+    the tgc. There is no real way to verify if a cas logout was successful, so it still might be in any client's
+    best interests to deauth on their end as well.
+</code></pre>
+
+<p>GET /event</p>
+
+<pre><code>  Paramaters: sessionKey (see auth), timeStart and timeEnd (if filtering by time is desired), 
+      Filter paramaters used by COWS rss feeds (see below)
+  Returns: Event Information
+  Authentication?: If site is not in "anonymous mode"
+  Description: Returns a json object representing all events that fit the given filters
+</code></pre>
+
+<p>POST /event</p>
+
+<pre><code>  Paramaters: sessionKey, Cows Event Paramaters (see below)
+  Returns: Nothing
+  Authentication?: Yes
+  Description: Creates an event with the specified parameters
+</code></pre>
+
+<p>GET /event/:id</p>
+
+<pre><code>  Paramaters: sessionKey (see auth)
+  Returns: Event Information
+  Authentication?: If site is not in "anonymous mode"
+  Description: Returns a json object representing the event with the specified ID
+</code></pre>
+
+<p>DELETE /event/:id</p>
+
+<pre><code>  Paramaters: sessionkey (via GET or POST due to limitations in DELETE)
+  Returns: Nothing
+  Authentication?: Yes
+  Description: Deletes the event with the specified id
+</code></pre>
+
+<p>Cows Event Parameters:</p>
+
+<pre><code>(To be continued)
+</code></pre>
+
+<p>Known Cows RSS Filters:</p>
+
+<pre><code>BuilingAndRoom
+DisplayLocations
+(To be continued)
+</code></pre>
+
+	    </div>
+	    
+	        	<!-- some informational fields that can be accessed by javascript -->
+    	 
+      <span style="display:none;" id="md-theme-name">spacelab</span> 
+      <span style="display:none;" id="md-plaintext-url">https://raw.github.com/zsennenga/Cows-RESTful-API/master/README.md</span> 
+
+     
+  </body>
 </html>
