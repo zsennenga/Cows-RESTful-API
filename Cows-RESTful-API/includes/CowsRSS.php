@@ -46,7 +46,7 @@ class cowsRss	{
 	 * @param unknown $url
 	 */
 	function setFeedUrl($url)	{
-		$this->feed->set_feed_url($feedUrl);
+		$this->feed->set_feed_url($url);
 		$ec = $this->feed->init();
 		if (!$ec)	{
 			throwError(ERROR_RSS,$this->feed->error());
