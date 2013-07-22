@@ -75,20 +75,19 @@ $app->get('/', function()	{
 
 $app->post('/session/:siteId/', function ($siteId)	{
 	$app = \Slim\Slim::getInstance();
-	$curl = new CurlWrapper();
+	$curl = CurlWrapper::CreateWithoutCookie();
 	
-	$tgc = $app->request()->post('tgc');
+	$tgc = $app->request()->params('tgc');
 	if ($tgc === null)	{
 		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
 	}
-	else if (!$curl->validateTGC())	{
-		throwError(ERROR_CAS, "Invalid TGC",400);
+	else if ($curl->validateTGC($tgc) !== true)	{
+		throwError(ERROR_CAS, "Invalid TGC" . $curl->validateTGC($tgc),400);
 	}
 	
 	if (!$curl->validateSiteID($siteId))	{
 		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 	}
-	
 	$sess = SessionWrapper::createSession($tgc, $siteId);
 	$app->response()->setStatus(201);
 	$app->response()->setBody(json_encode(array('sessionKey' => $sess->getSessionKey())));
@@ -96,6 +95,7 @@ $app->post('/session/:siteId/', function ($siteId)	{
 });
 
 $app->delete('/session/:key/', function($key) {
+	$app = \Slim\Slim::getInstance();
 	$sess = new SessionWrapper($key);
 	$sess->destroySession();
 	$app->response()->status(200);
@@ -130,15 +130,12 @@ $app->map('/event/:siteId/', function ($siteId)	{
 		else if (isset($_GET['timeStart']) || isset($_GET['timeEnd']))	{
 				throwError(ERROR_PARAMETERS, "Time ranges must include both bounds", 400);
 		}
-		$curl = new CurlHandle("");
+		$curl = CurlWrapper::CreateWithoutCookie();
 		if (!$curl->validateSiteID($siteId))	{
 			throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
 		}
 		else if (isset($_GET['sessionKey']))	{
 			$sess = new SessionWrapper($_GET['sessionKey']);
-		}
-		else	{
-			throwError(ERROR_PARAMETERS, "Must set sessionKey or SiteID",400);
 		}
 		unset($curl);
 		
@@ -194,7 +191,7 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 			$curl = new CurlWrapper($sess->getCookieFile());
 		}
 		else	{
-			$curl = new CurlWrapper();
+			$curl = CurlWrapper::CreateWithoutCookie();
 		}
 		$app->response()->setBody($curl->getSingleEvent($siteId, $eventId));
 	}
@@ -204,7 +201,7 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		}
 		$sess = new SessionWrapper($app->request()->get('sessionKey'));
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->deleteEvent($eventId);
+		$curl->deleteEvent($siteId, $eventId,$sess->getTGC());
 		$app->response()->setStatus(200);
 	}
 	else	{

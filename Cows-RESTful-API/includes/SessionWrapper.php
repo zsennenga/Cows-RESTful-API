@@ -6,10 +6,11 @@ require_once 'CurlWrapper.php';
 class SessionWrapper	{
 	private $sessionKey;
 	private $dbHandle;
-	private $sessionVar;
+	private $sessionVar;	
 	
 	public function __construct($sessionKey)	{
 		$this->dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
+		$this->sessionKey = $sessionKey;
 		$query = $this->dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE sessionKey = :key");
 		$query->bindParam(":key", $this->sessionKey, PDO::PARAM_STR);
 		$this->execute($query);
@@ -24,29 +25,40 @@ class SessionWrapper	{
 		$cookieFile = $handle->getCookieFile();
 		unset($handle);
 		
-		$sessionKey = sha1($tgc.$siteID);
-		
-		$query = $this->dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE sessionKey = :key");
-		$query->bindParam(":key", $sessionKey, PDO::PARAM_STR);
-		$this->execute($query);
-		
-		if ($query->fetch() != FALSE)	{
-			$query = $this->dbHandle->prepare("DELETE FROM " . DB_TABLE . " WHERE sessionKey = :key");
-			$query->bindParam(":key", $sessionKey);
-			$this->execute($query);
+		$sessionKey = sha1($tgc.$siteID.time());
+		$sid = sha1($tgc.$siteID);
+		$dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
+		$query = $dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE sid = :key");
+		$query->bindParam(":key", $sid, PDO::PARAM_STR);
+		if ($query->execute() === false)	{
+			throwError(ERROR_DB,$query->errorInfo());
 		}
 		
-		$query = $this->dbHandle->prepare("INSERT INTO " . DB_TABLE . " VALUES (:key,:id,:cookie)");
+		if ($query->fetch() != FALSE)	{
+			$out = $query->fetch();
+			if (file_exists($out['cookieFile'])) unlink($out['cookieFile']);
+			$query = $dbHandle->prepare("DELETE FROM " . DB_TABLE . " WHERE sid = :key");
+			$query->bindParam(":key", $sid);
+			if ($query->execute() === false)	{
+				throwError(ERROR_DB,$query->errorInfo());
+			}
+		}
+		
+		$query = $dbHandle->prepare("INSERT INTO " . DB_TABLE . " VALUES (:sid, :key, :cookie,:id,:tgc)");
+		$query->bindParam(":sid",$sid);
 		$query->bindParam(":key", $sessionKey);
 		$query->bindParam(":id", $siteID);
 		$query->bindParam(":cookie", $cookieFile);
-		$this->execute($query);
+		$query->bindParam(":tgc", $tgc);
+		if ($query->execute() === false)	{
+			throwError(ERROR_DB,$query->errorInfo());
+		}
 		
 		return new SessionWrapper($sessionKey);
 	}
 	
 	public function getSiteId()	{
-		return $this->sessionVar['siteId'];
+		return $this->sessionVar['siteID'];
 	}
 	
 	public function getTGC()	{
@@ -71,14 +83,14 @@ class SessionWrapper	{
 		$handle->casLogout($this->getTGC());
 		unset($handle);
 		
-		unlink($this->getCookieFile());
+		if (file_exists($this->getCookieFile())) unlink($this->getCookieFile());
 		
 		$query = $this->dbHandle->prepare("DELETE FROM " . DB_TABLE . " WHERE sessionKey = :key");
 		$query->bindParam(":key", $this->sessionKey);
 		$this->execute($query);
 		
-		unset($this->$dbHandle);
-		unset($this->$sessionVar);
+		unset($this->dbHandle);
+		unset($this->sessionVar);
 	}
 	/**
 	 * Executes a PDO query, checks for errors in execution.

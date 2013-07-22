@@ -17,23 +17,39 @@ class CurlWrapper	{
 		for ($i = 0; $i < 15; $i++) {
 			$randString .= $charset[rand(0, strlen($charset)-1)];
 		}
-		return realpath(dirname(__FILE__)) . "/cookies/cookieFile" . $randString;
+		$path = DIRECTORY_SEPARATOR . "cookies" . DIRECTORY_SEPARATOR . "cookieFile" . $randString;
+		return realpath(dirname(__FILE__)) . $path;
 	}
 	
 	public function __construct($cookieFile = null)	{
 		$this->curlHandle = curl_init();
-		if ($cookieFile != "")	{
 			if ($cookieFile == null)	{
-				$this->cookieFile = genFilename();
-			}
-			else $this->cookieFile = $cookieFile;
-			curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, $this->cookieFile);
-			curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, $this->cookieFile);
+			$this->cookieFile = $this->genFilename();
 		}
-	
+		else $this->cookieFile = $cookieFile;
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, $this->cookieFile);
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, $this->cookieFile);
+		
 		curl_setopt($this->curlHandle, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->curlHandle, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($this->curlHandle, CURLOPT_SSL_VERIFYPEER, false);
+		
+		curl_setopt ($this->curlHandle, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36");
+		curl_setopt ($this->curlHandle, CURLOPT_AUTOREFERER, true );
+	}
+	/**
+	 * Generate a CurlWrapper instance without a cookie
+	 * @return CurlWrapper
+	 */
+	public static function CreateWithoutCookie()	{
+		$curl = new CurlWrapper();
+		$curl->clearCookieHandler();
+		return $curl;
+	}
+	
+	public function clearCookieHandler()	{
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, null);
+		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, null);
 	}
 	
 	public function __destruct()	{
@@ -51,12 +67,15 @@ class CurlWrapper	{
 	 */
 	private function getWithParameters($url, $parameters = "")  {
 		if (is_array($parameters))	{
-			$paramters = http_build_query($parameters);
+			$parameters = http_build_query($parameters);
 		}
 		curl_setopt($this->curlHandle, CURLOPT_HTTPGET, true);
-		curl_setopt($this->curlHandle, CURLOPT_URL, $url . "?" . $parameters);
+		if ($parameters != "") curl_setopt($this->curlHandle, CURLOPT_URL, $url . "?" . $parameters);
+		else curl_setopt($this->curlHandle, CURLOPT_URL, $url);
 		$out = curl_exec($this->curlHandle);
+		
 		if ($out === false) throwError(ERROR_CURL,curl_error($this->curlHandle));
+		if (curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE) == 404) throwError(ERROR_PARAMETERS,"Page was not found",400);
 		return $out;
 	}
 	/**
@@ -102,9 +121,11 @@ class CurlWrapper	{
 	 */
 	public function validateTGC($tgc)	{
 		$params = array("pgt" => $tgc,
-			  "targetService" => test);
+			  "targetService" => "test");
 		$resp = $this->getWithParameters(CAS_PROXY_PATH, $params);
-		if (strpos($resp, 'proxyFailure') !== false)	return false;
+		if (strpos($resp, 'proxyFailure') !== false)	{
+			return false;
+		}
 		return true;
 	}
 	/**
@@ -139,7 +160,7 @@ class CurlWrapper	{
 			$out = str_replace('\n','', $out);
 			$out = str_replace('\t','', $out);
 			$out = str_replace('\r', '', $out);
-			return $out;
+			return trim($out);
 		}	
 		else	{
 			throwError(ERROR_CAS, "Unable to get service ticket");
@@ -154,7 +175,7 @@ class CurlWrapper	{
 	 * @return boolean
 	 */
 	public function cowsLogin($tgc, $siteId)	{
-		$returnURL = COWS_BASE_PATH . $siteId . "/";
+		$returnURL = COWS_BASE_PATH . $siteId;
 		$loginURL = COWS_BASE_PATH . $siteId . COWS_LOGIN_PATH;
 		
 		$service = $loginURL . "?returnUrl=" . $returnURL;
@@ -163,9 +184,9 @@ class CurlWrapper	{
 		$params = array("returnUrl" => $returnURL,
 				"ticket" => $ticket
 		);
-		$out = getWithParameters($loginURL,$params);
+		$out = $this->getWithParameters($loginURL,$params);
 		$last = curl_getinfo($this->curlHandle, CURLINFO_EFFECTIVE_URL);
-		if (strpos($last,"cows.ucdavis.edu") === false)	{
+		if (strpos($last,"cas.ucdavis.edu") !== false)	{
 			throwError(ERROR_CAS, "Unable to login");
 		}
 	}
@@ -217,12 +238,13 @@ class CurlWrapper	{
 	 *  @param Site Id $siteId
 	 *  @param Event id $id 
 	 */
-	public function deleteEvent($siteId,$id)	{
+	public function deleteEvent($siteId,$id,$tgc)	{
 		$url = COWS_BASE_PATH . $siteId . COWS_DELETE_PATH;
+		$this->cowsLogin($tgc, $siteId);
 		$params = array(
 				"SiteId" => $siteId,
 				"EventId" => $id,
-				"__RequestVerificationToken" => $this->getRequestVerificationToken(),
+				"__RequestVerificationToken" => $this->getRequestVerificationToken($url . "/" . $id),
 				"timestamp" => "AAAAAAAOH6s="
 		);
 		$this->postWithParameters($url,$params);
@@ -264,8 +286,7 @@ class CurlWrapper	{
 	}
 	
 	public function getSingleEvent($siteId, $eventId)	{
-		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH . "/details/" . $eventId);
-		echo(COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/details/" . $eventId);
+		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/details/" . $eventId);
 		$doc = new DocumentWrapper($out);
 		return $doc->parseEvent();
 	}

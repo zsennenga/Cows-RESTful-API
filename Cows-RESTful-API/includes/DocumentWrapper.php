@@ -4,8 +4,13 @@ class DocumentWrapper	{
 	
 	public function __construct($data)	{
 		//Generate Xpath from the html output of a cURL query
+		if ($data == "")	{
+			throwError(ERROR_PARAMETERS, "Blank document given. Make sure event id/site id are correct.",400);
+		}
 		$doc = new DOMDocument();
+		libxml_use_internal_errors(true);
 		$doc->loadHTML($data);
+		libxml_use_internal_errors(false);
 		$this->doc = new DOMXPath($doc);
 	}
 	
@@ -48,21 +53,32 @@ class DocumentWrapper	{
 				"building" => "",
 				"room" => ""
 		);
-		//TODO FIX THIS
-		$q = $this->doc->query('//div[@class="EventTypeName"]/display-field');
-		$retArray['category'] = $q->item(0);
-		$q = $this->doc->query('//div[@class="StartDate"]/display-field/date');
+		
+		$q = $this->doc->query('//div[@class="EventTypeName"]/div[@class="display-field"]');
+		if (!is_object($q->item(0))) throwError(ERROR_PARAMETERS,"Was not able to parse single event. 
+				Check that the event id is correct and whether or not you need to be authorized to access this siteid.",400);
+		$retArray['category'] = $q->item(0)->nodeValue;
+		
+		$q = $this->doc->query('//div[@class="StartDate"]/div[@class="display-field"]/span[@class="date"]');
 		$retArray['startDate'] = $q->item(0)->nodeValue;
-		$q = $this->doc->query('//div[@class="StartDate"]/display-field/time');
+		
+		$q = $this->doc->query('//div[@class="StartDate"]/div[@class="display-field"]/span[@class="time"]');
 		$retArray['endDate'] = $q->item(0)->nodeValue;
-		$q = $this->doc->query('//div[@class="EndDate"]/display-field/date');
+		
+		$q = $this->doc->query('//div[@class="EndDate"]/div[@class="display-field"]/span[@class="date"]');
 		$retArray['startTime'] = $q->item(0)->nodeValue;
-		$q = $this->doc->query('//div[@class="EndDate"]/display-field/time');
+		
+		$q = $this->doc->query('//div[@class="EndDate"]/div[@class="display-field"]/span[@class="time"]');
 		$retArray['endTime'] = $q->item(0)->nodeValue;
-		$q = $this->doc->query('//div[@class="BuildingName"]/display-field');
+		
+		$q = $this->doc->query('//div[@class="BuildingName"]/div[@class="display-field"]');
 		$retArray['building'] = $q->item(0)->nodeValue;
-		$q = $this->doc->query('//div[@class="RoomName"]/display-field');
+		
+		$q = $this->doc->query('//div[@class="RoomName"]/div[@class="display-field"]');
 		$retArray['room'] = $q->item(0)->nodeValue;
+		
+		$q = $this->doc->query('//div[@id="event-dialog"]');
+		$retArray['title'] = $q->item(0)->getAttribute("title");
 		
 		return json_encode($retArray);
 	}
