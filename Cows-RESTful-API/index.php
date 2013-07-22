@@ -1,12 +1,5 @@
 <?php
-/**
- * Step 1: Require the Slim Framework
- *
- * If you are not using Composer, you need to require the
- * Slim Framework and register its PSR-0 autoloader.
- *
- * If you are using Composer, you can skip this step.
- */
+
 if (!file_exists('includes/Config.php'))	{
 	echo "Please follow the Install instructions before running this application";
 	exit(0);
@@ -35,7 +28,7 @@ $app->get('/', function()	{
 		$session = array(
 				"POST" => array(
 						"requiresAuth" => false,
-						"requiredParameters" => "tgc,siteid",
+						"requiredParameters" => "tgc",
 						"description" => "Generate a session key which will allow you to use COWS services which require authentication"
 				),
 		);
@@ -49,7 +42,7 @@ $app->get('/', function()	{
 		$event = array(
 				"GET" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "siteid OR sessionKey",
+						"requiredParameters" => "sessionKey (if auth is required)",
 						"description" => "Gets all events that meet the parameters given as GET parameters. Only requires auth if anonymous mode is off on the COWS site"
 				),
 				"POST" => array(
@@ -61,16 +54,16 @@ $app->get('/', function()	{
 		$eventid = array(
 				"GET" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "siteid OR sessionKey",
+						"requiredParameters" => "sessionKey (If auth is required)",
 						"description" => "Gets the information with the Event with the specified ID"
 				),
 				"DELETE" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "GET sessionKey",
+						"requiredParameters" => "sessionKey (Via GET or POST due to the limitations of DELETE)",
 						"description" => "Deletes the event with the Specified ID"
 				)
 		);
-		$methods = array("/session" => $session, "/session/:key" => $sesskey, "/event" => $event, "/event/:id" => $eventid);
+		$methods = array("/session/:siteId" => $session, "/session/:key" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
 		$app->response()->setBody(json_encode($methods));
 	}
 	else $app->response()->setBody(file_get_contents("includes/methods.html"));
@@ -211,6 +204,21 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		$app->response()->setStatus(501);
 	}
 })->via('GET','DELETE')->conditions(array('id' => '[0-9]'));
+
+$app->get('/error/', function()	{
+	$app = \Slim\Slim::getInstance();
+	$out = array(
+			"-1" => "ERROR_GENERIC",
+			"-2" => "ERROR_CAS",
+			"-3" => "ERROR_EVENT",
+			"-4" => "ERROR_CURL",
+			"-5" => "ERROR_RSS",
+			"-6" => "ERROR_PARAMETERS",
+			"-7" => "ERROR_DB",
+			"-8" => "ERROR_COWS"
+	);
+	$app->response()->setBody(json_encode($out));
+});
 
 $app->notFound(function ()	{
 	$app = \Slim\Slim::getInstance();
