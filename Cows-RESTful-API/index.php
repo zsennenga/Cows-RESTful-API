@@ -110,45 +110,49 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	$timeBounded = false;
 	
 	if ($method == 'GET')	{
-		//Store and remove the ajax callback if necessary
-		if (isset($_GET['callback']))	{
-			$callback = $_GET['callback'];
+		$params = $app->request()->get();
+		if (isset($params['callback']))	{
+			$callback = $params['callback'];
 			$ajaxResponse = true;
-			unset($_GET['callback']);
+			unset($params['callback']);
 		}
 		
-		if (isset($_GET['timeStart']) && isset($_GET['timeEnd']))	{
+		if (isset($params['timeStart']) && isset($params['timeEnd']))	{
 			$timeBounded = true;
-			$timeStart = $_GET['timeStart'];
-			unset($_GET['timeStart']);
-			$timeEnd = $_GET['timeEnd'];
-			unset($_GET['timeEnd']);
+			$timeStart = $params['timeStart'];
+			unset($params['timeStart']);
+			$timeEnd = $params['timeEnd'];
+			unset($params['timeEnd']);
 			if (strtotime($timeStart) === false || strtotime($timeEnd) === false)	{
 				throwError(ERROR_PARAMETERS, "Invalid time range", 400);
 			}
+			else if (strtotime($timeStart) > $strtotime($timeEnd))	{
+				throwError(ERROR_PARAMETERS, "Start time must be before End time", 400);
+			}
 		}
-		else if (isset($_GET['timeStart']) || isset($_GET['timeEnd']))	{
+		else if (isset($params['timeStart']) || isset($params['timeEnd']))	{
 				throwError(ERROR_PARAMETERS, "Time ranges must include both bounds", 400);
 		}
 		$curl = CurlWrapper::CreateWithoutCookie();
 		if (!$curl->validateSiteID($siteId))	{
 			throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
 		}
-		else if (isset($_GET['sessionKey']))	{
-			$sess = new SessionWrapper($_GET['sessionKey']);
+		else if (isset($params['sessionKey']))	{
+			$sess = new SessionWrapper($params['sessionKey']);
+			unset($params['sessionKey']);
 		}
 		unset($curl);
 		
 		//Build RSS object
-		//Feed cows the whole batch of $_GET parameters
+		//Feed cows the whole batch of $params parameters
 		if (!isset($sess))	{
 			$cows = new cowsRss();
-			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($_GET));
+			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 		}
 		else {
 			$curl = new CurlHandle($sess->getSessionKey());
 			$cows = new CowsRss();
-			$cows->setFeedData($curl->getFeed($sess->getSiteId(),$_GET));
+			$cows->setFeedData($curl->getFeed($sess->getSiteId(),$params));
 		}
 		if ($timeBounded)	{
 			$sequence = eventSequence::createSequenceFromArrayTimeBounded(
