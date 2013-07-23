@@ -30,5 +30,17 @@ function throwError($code,$message,$status = null)	{
 	$app = \Slim\Slim::getInstance();
 	$app->halt($status,generateError($code,$message));
 }
-
+/**
+ * Handles json callback
+ * @param Array $message
+ * @param Bool $needCallback
+ * @param String $callback
+ * @return json output
+ */
+function doJson($message,$needCallback,$callback)	{
+	if ($needCallback) 
+		return $callback . "(" . json_encode($message) . ")";
+	else 
+		return json_encode($message);
+}
 ?>

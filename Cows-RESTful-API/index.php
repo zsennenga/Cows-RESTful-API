@@ -19,7 +19,14 @@ $app = new \Slim\Slim();
 
 set_exception_handler('error_handler');
 
-$app->response()->body(json_encode(array()));
+$needCallback = false;
+$callback = "";
+if ($app->request()->params('callback') != null)	{
+	$needCallback = true;
+	$callback = $app->request()->params('callback');
+}
+
+$app->response()->setBody(doJson(array(),$needCallback,$callback));
 $app->contentType('application/json');
 
 $app->get('/', function()	{
@@ -64,7 +71,7 @@ $app->get('/', function()	{
 				)
 		);
 		$methods = array("/session/:siteId" => $session, "/session/:key" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
-		$app->response()->setBody(json_encode($methods));
+		$app->response()->setBody(doJson($methods,$needCallback,$callback));
 	}
 	else {
 		$app->contentType('text/html');
@@ -90,7 +97,7 @@ $app->post('/session/:siteId/', function ($siteId)	{
 	}
 	$sess = SessionWrapper::createSession($tgc, $siteId);
 	$app->response()->setStatus(201);
-	$app->response()->setBody(json_encode(array('sessionKey' => $sess->getSessionKey())));
+	$app->response()->setBody(doJson(array('sessionKey' => $sess->getSessionKey()),$needCallback,$callback));
 
 });
 
@@ -105,17 +112,11 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
-	
-	$ajaxResponse = false;
+
 	$timeBounded = false;
 	
 	if ($method == 'GET')	{
 		$params = $app->request()->get();
-		if (isset($params['callback']))	{
-			$callback = $params['callback'];
-			$ajaxResponse = true;
-			unset($params['callback']);
-		}
 		
 		if (isset($params['timeStart']) && isset($params['timeEnd']))	{
 			$timeBounded = true;
@@ -161,11 +162,7 @@ $app->map('/event/:siteId/', function ($siteId)	{
 		else	{
 			$sequence = new eventSequence($cows->getData(time()));
 		}
-		$json = json_encode($sequence->toArray());
-		if ($ajaxResponse)	{
-			$app->response()->setBody($callback . "($json)");
-		}
-		else $app->response()->setBody($json);
+		$app->response()->setBody(doJson($sequence->toArray(),$needCallback,$callback));
 		$app->response()->setStatus(200);
 	}
 	
@@ -225,7 +222,7 @@ $app->get('/error/', function()	{
 			"-7" => "ERROR_DB",
 			"-8" => "ERROR_COWS"
 	);
-	$app->response()->setBody(json_encode($out));
+	$app->response()->setBody(doJson($out,$needCallback,$callback));
 });
 
 $app->notFound(function ()	{
