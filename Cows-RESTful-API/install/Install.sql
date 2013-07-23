@@ -7,17 +7,13 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8 */;
 
-DROP TABLE IF EXISTS `rest`;
-CREATE TABLE IF NOT EXISTS `rest` (
-  `sid` varchar(256) NOT NULL,
-  `sessionKey` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
-  `cookieFile` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
-  `siteID` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
-  `tgc` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
-  PRIMARY KEY (`sid`),
-  KEY `sessionKey` (`sessionKey`),
-  KEY `sid` (`sid`),
-  KEY `sid_2` (`sid`)
+CREATE TABLE IF NOT EXISTS `cowsrest` (
+  `publicKey` varchar(512) NOT NULL,
+  `privateKey` varchar(512) NOT NULL,
+  `sessionKey` varchar(512) NOT NULL,
+  `cookieFile` varchar(1024) NOT NULL,
+  `Comment` varchar(2048) NOT NULL,
+  PRIMARY KEY (`publicKey`,`privateKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

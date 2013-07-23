@@ -1,3 +1,5 @@
 1. Edit Config.Default.php and copy it to ../includes/Config.php
 2. Execute the sql file on whatever database you've set in Config.php
 3. Delete this directory.
+
+You can use KeyGenerator.php to generate public/private keys for use with the API.
