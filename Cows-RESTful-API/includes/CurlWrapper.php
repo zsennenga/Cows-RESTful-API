@@ -89,9 +89,6 @@ class CurlWrapper	{
 	 * @return mixed
 	 */
 	private function postWithParameters($url, $parameters = "")  {
-		if (is_array($parameters))	{
-			$paramters = http_build_query($parameters);
-		}
 		curl_setopt($this->curlHandle, CURLOPT_POST, true);
 		curl_setopt($this->curlHandle, CURLOPT_POSTFIELDS, $parameters);
 		$out = curl_exec($this->curlHandle);
@@ -195,7 +192,6 @@ class CurlWrapper	{
 	 * from Cows via scraping the /event/create page
 	 */
 	public function getCowsFields($siteId)	{
-		if (!$this->loggedIn) throwError(ERROR_COWS,"Not logged in");
 		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH);
 		$doc = new DocumentWrapper($out);
 		return array(
@@ -260,13 +256,12 @@ class CurlWrapper	{
 	}
 	
 	public function createEvent($siteId,$params)	{
-		if (!$this->loggedIn) throwError(ERROR_GENERIC, "Must be logged in to create an event.");
 		if (!is_array($params)) throwError(ERROR_GENERIC, "Parameters for createEvent must be an array");
 		
 		if (!isset($params['Categories'])) throwError(ERROR_PARAMETERS, "Categories must be set",400);
 		$cat = urldecode($params['Categories']);
 		unset($params['Categories']);
-		if (strlen($cat) > 0) $cat = split("&",$cat);
+		if (strlen($cat) > 0) $cat = explode("&",$cat);
 		$appendString = "";
 		foreach($cat as $str)	{
 			$appendString .= "&Categories=" . urlencode($str);
@@ -275,14 +270,14 @@ class CurlWrapper	{
 		if (isset($params['Locations']))	{
 			$loc = urldecode($params['Locations']);
 			unset($params['Locations']);
-			if (strlen($loc) > 0) $loc = split("&",$loc);
+			if (strlen($loc) > 0) $loc = explode("&",$loc);
 			foreach($loc as $str)	{
 				$appendString .= "&DisplayLocations=" . urlencode($str);
 			}
 		}
 		
 		$url = COWS_BASE_PATH . $siteId . COWS_EVENT_PATH;
-		$params = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString;
+		$params = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString . "&siteId=" . $siteId;
 		$out = $this->postWithParameters($url,$params);
 		$doc = new DocumentWrapper($out);
 		$doc->findCowsError();

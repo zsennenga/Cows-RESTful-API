@@ -1,12 +1,14 @@
 <?php
 class DocumentWrapper	{
 	private $doc;
+	private $rawData;
 	
 	public function __construct($data)	{
 		//Generate Xpath from the html output of a cURL query
 		if ($data == "")	{
 			throwError(ERROR_PARAMETERS, "Blank document given. Make sure event id/site id are correct.",400);
 		}
+		$this->rawData = $data;
 		$doc = new DOMDocument();
 		libxml_use_internal_errors(true);
 		$doc->loadHTML($data);
@@ -26,7 +28,7 @@ class DocumentWrapper	{
 		
 		//Cows likes to throw generic errors sometimes for no reason
 		//Well okay there is usually a reason
-		if (strstr($htmlOutput,"Error") !== false)	{
+		if (strstr($this->rawData,"Error") !== false)	{
 			throwError(ERROR_EVENT, "COWS Error: Unknown Problem occurred.",400);
 		}
 	}

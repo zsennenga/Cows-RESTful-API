@@ -166,9 +166,9 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	}
 	
 	else if ($method == 'POST')	{
-		$params = $app->request()->post();
+		$params = $app->request()->params();
 		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
-		$sess = new SessionHandler($params['sessionKey']);
+		$sess = new SessionWrapper($params['sessionKey']);
 		unset($params['sessionKey']);
 		$curl = new CurlWrapper($sess->getCookieFile());
 		$curl->cowsLogin($sess->getTGC(), $siteId);
