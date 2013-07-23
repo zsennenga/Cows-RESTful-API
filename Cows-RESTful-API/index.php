@@ -33,11 +33,19 @@ if ($app->request()->params('sessionKey') != null)	{
 
 if ($app->request()->params('signature') != null)	{
 	if ($sess == null)	{
-		throwError(ERROR_PARAMETERS, "Signed requests must include a sessionId", 400);
+		if ($app->request()->params('publicKey') != null)	{
+			if (!SessionWrapper::checkAltKey())	{
+				throwError(ERROR_PARAMETERS, "Invalid signature");
+			}
+		}
+		else throwError(ERROR_PARAMETERS, "Signed requests must include a sessionKey or publicKey", 400);
 	}
-	if (!$sess->checkKey($app->request()->params('signature')))	{
+	if (!$sess->checkKey())	{
 		throwError(ERROR_PARAMETERS, "Invalid signature");
 	}
+}
+else	{
+	throwError(ERROR_PARAMETERS, "All requests must be signed.", 400);
 }
 
 $app->response()->setBody(doJson(array(),$needCallback,$callback));
@@ -94,7 +102,7 @@ $app->get('/', function()	{
 	
 });
 
-$app->post('/session/:siteId/', function ($siteId)	{
+$app->post('/session/:siteId/', function ($siteId) use ($needCallback, $callback, $sess) {
 	$app = \Slim\Slim::getInstance();
 	$curl = CurlWrapper::CreateWithoutCookie();
 	
@@ -122,7 +130,7 @@ $app->delete('/session/:key/', function($key) {
 	$app->response()->status(200);
 });
 
-$app->map('/event/:siteId/', function ($siteId)	{
+$app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $sess){
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
@@ -159,7 +167,7 @@ $app->map('/event/:siteId/', function ($siteId)	{
 		
 		//Build RSS object
 		//Feed cows the whole batch of $params parameters
-		if (!isset($sess))	{
+		if ($sess != null)	{
 			$cows = new cowsRss();
 			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 		}
@@ -193,7 +201,7 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	}
 })->via('GET','POST');
 
-$app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
+$app->map('/event/:siteId/:eventId/', function($siteId,$eventId) use ($needCallback, $callback, $sess)	{
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();

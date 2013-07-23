@@ -68,12 +68,29 @@ class SessionWrapper	{
 		return $this->sessionKey;
 	}
 	
-	public function checkKey($inputKey)	{
+	public static function checkKey()	{
+		$app = new \Slim\Slim();
+		
+		$inputKey = $app->request()->params('signature');
 		$data = $_SERVER['REQUEST_METHOD'].$_SERVER['REQUEST_URI'];
 		//Regex from http://stackoverflow.com/questions/1842681/regular-expression-to-remove-one-parameter-from-query-string
 		$params = preg_replace("/&signature(\=[^&]*)?(?=&|$)|^signature(\=[^&]*)?(&|$)/", "", $_SERVER['QUERY_STRING'],1);
 		$data = $data . $params;
-		$outputKey = hash_hmac("sha256",$data,getPrivateKey());
+		$outputKey = hash_hmac("sha256",$data,$this->getPrivateKey());
+		return strtolower($outputKey) == strtolower($inputKey);
+	}
+	
+	public static function checkAltKey ()	{
+		$app = new \Slim\Slim();
+		
+		$inputKey = $app->request()->params('signature');
+		$pubKey = $app->request()->params('publicKey');
+		
+		$data = $_SERVER['REQUEST_METHOD'].$_SERVER['REQUEST_URI'];
+		//Regex from http://stackoverflow.com/questions/1842681/regular-expression-to-remove-one-parameter-from-query-string
+		$params = preg_replace("/&signature(\=[^&]*)?(?=&|$)|^signature(\=[^&]*)?(&|$)/", "", $_SERVER['QUERY_STRING'],1);
+		$data = $data . $params;
+		$outputKey = hash_hmac("sha256",$data,$pubKey);
 		return strtolower($outputKey) == strtolower($inputKey);
 	}
 	
