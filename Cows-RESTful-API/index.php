@@ -26,6 +26,20 @@ if ($app->request()->params('callback') != null)	{
 	$callback = $app->request()->params('callback');
 }
 
+$sess = null;
+if ($app->request()->params('sessionKey') != null)	{
+	$sess = new SessionWrapper($app->request()->params('sessionKey'));
+}
+
+if ($app->request()->params('signature') != null)	{
+	if ($sess == null)	{
+		throwError(ERROR_PARAMETERS, "Signed requests must include a sessionId", 400);
+	}
+	if (!$sess->checkKey($app->request()->params('signature')))	{
+		throwError(ERROR_PARAMETERS, "Invalid signature");
+	}
+}
+
 $app->response()->setBody(doJson(array(),$needCallback,$callback));
 $app->contentType('application/json');
 
@@ -117,7 +131,7 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	
 	if ($method == 'GET')	{
 		$params = $app->request()->get();
-		
+		unset($params['signature']);
 		if (isset($params['timeStart']) && isset($params['timeEnd']))	{
 			$timeBounded = true;
 			$timeStart = $params['timeStart'];
@@ -139,7 +153,6 @@ $app->map('/event/:siteId/', function ($siteId)	{
 			throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
 		}
 		else if (isset($params['sessionKey']))	{
-			$sess = new SessionWrapper($params['sessionKey']);
 			unset($params['sessionKey']);
 		}
 		unset($curl);
@@ -168,11 +181,10 @@ $app->map('/event/:siteId/', function ($siteId)	{
 	
 	else if ($method == 'POST')	{
 		$params = $app->request()->params();
+		unset($params['signature']);
 		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
-		$sess = new SessionWrapper($params['sessionKey']);
 		unset($params['sessionKey']);
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->cowsLogin($sess->getTGC(), $siteId);
 		$curl->createEvent($siteId, $params);
 	}
 
@@ -188,7 +200,6 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 	
 	if ($method == 'GET')	{
 		if ($app->request()->get("sessionKey") !== null)	{
-			$sess = new SessionWrapper($app->request()->get("sessionKey"));
 			$curl = new CurlWrapper($sess->getCookieFile());
 		}
 		else	{
@@ -200,9 +211,8 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		if (!$app->request()->get('sessionKey') === null)	{
 			throwError(ERROR_PARAMETERS, "You must provite a sessionKey to access this interface",400);
 		}
-		$sess = new SessionWrapper($app->request()->get('sessionKey'));
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->deleteEvent($siteId, $eventId,$sess->getTGC());
+		$curl->deleteEvent($siteId, $eventId);
 		$app->response()->setStatus(200);
 	}
 	else	{

@@ -237,9 +237,8 @@ class CurlWrapper	{
 	 *  @param Site Id $siteId
 	 *  @param Event id $id 
 	 */
-	public function deleteEvent($siteId,$id,$tgc)	{
+	public function deleteEvent($siteId,$id)	{
 		$url = COWS_BASE_PATH . $siteId . COWS_DELETE_PATH;
-		$this->cowsLogin($tgc, $siteId);
 		$params = array(
 				"SiteId" => $siteId,
 				"EventId" => $id,

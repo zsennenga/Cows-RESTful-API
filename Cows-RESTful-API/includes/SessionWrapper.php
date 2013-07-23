@@ -20,49 +20,44 @@ class SessionWrapper	{
 		}
 	}
 	
-	public static function createSession($tgc,$siteID)	{
+	public static function createSession($tgc,$siteID,$pubKey)	{
 		$handle = new CurlWrapper();
 		$cookieFile = $handle->getCookieFile();
 		unset($handle);
 		
-		$sessionKey = sha1($tgc.$siteID.time());
-		$sid = sha1($tgc.$siteID);
 		$dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
-		$query = $dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE sid = :key");
-		$query->bindParam(":key", $sid, PDO::PARAM_STR);
+		
+		$query = $dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE publicKey = :key");
+		$query->bindParam(":key", $pubKey, PDO::PARAM_STR);
 		if ($query->execute() === false)	{
-			throwError(ERROR_DB,$query->errorInfo());
+			throwError(ERROR_DB, "Unable to execute your query.");
 		}
 		
 		if ($query->fetch() != FALSE)	{
 			$out = $query->fetch();
-			if (file_exists($out['cookieFile'])) unlink($out['cookieFile']);
-			$query = $dbHandle->prepare("DELETE FROM " . DB_TABLE . " WHERE sid = :key");
-			$query->bindParam(":key", $sid);
-			if ($query->execute() === false)	{
-				throwError(ERROR_DB,$query->errorInfo());
-			}
+			if (file_exists($out['cookieFile'])) 
+				unlink($out['cookieFile']);
+			$sid = hash_hmac("sha256", $pubKey.$siteId.time(), $out['privateKey']);
+			$curl = new CurlWrapper();
+			$cookie = $curl->getCookieFile();
+			$curl->cowsLogin($tgc, $siteID);
+			unset($curl);
+		}
+		else	{
+			throwError(ERROR_PARAMETERS, "Unrecognized Public Key", 400);
 		}
 		
-		$query = $dbHandle->prepare("INSERT INTO " . DB_TABLE . " VALUES (:sid, :key, :cookie,:id,:tgc)");
-		$query->bindParam(":sid",$sid);
-		$query->bindParam(":key", $sessionKey);
-		$query->bindParam(":id", $siteID);
-		$query->bindParam(":cookie", $cookieFile);
-		$query->bindParam(":tgc", $tgc);
+		$query = $dbHandle->prepare("UPDATE " . DB_TABLE 
+				. " SET sessionKey = :sid, cookieFile = :cookie"
+				. " WHERE publicKey = :key");
+		$query->bindParam(":sid",$sid, PDO::PARAM_STR);
+		$query->bindParam(":cookie", $cookie, PDO::PARAM_STR);
+		$query->bindParam(":key", $pubKey, PDO::PARAM_STR);
 		if ($query->execute() === false)	{
 			throwError(ERROR_DB,$query->errorInfo());
 		}
 		
 		return new SessionWrapper($sessionKey);
-	}
-	
-	public function getSiteId()	{
-		return $this->sessionVar['siteID'];
-	}
-	
-	public function getTGC()	{
-		return $this->sessionVar['tgc'];
 	}
 	
 	public function getCookieFile()	{
@@ -73,6 +68,15 @@ class SessionWrapper	{
 		return $this->sessionKey;
 	}
 	
+	public function checkKey($inputKey)	{
+		$data = $_SERVER['REQUEST_METHOD'].$_SERVER['REQUEST_URI'];
+		//Regex from http://stackoverflow.com/questions/1842681/regular-expression-to-remove-one-parameter-from-query-string
+		$params = preg_replace("/&signature(\=[^&]*)?(?=&|$)|^signature(\=[^&]*)?(&|$)/", "", $_SERVER['QUERY_STRING'],1);
+		$data = $data . $params;
+		$outputKey = hash_hmac("sha256",$data,getPrivateKey());
+		return strtolower($outputKey) == strtolower($inputKey);
+	}
+	
 	public function __destruct()	{
 		unset($this->dbHandle);
 	}
@@ -80,12 +84,12 @@ class SessionWrapper	{
 	public function destroySession()	{
 		$handle = new CurlWrapper($this->getCookieFile());
 		$handle->cowsLogout($this->getSiteId());
-		$handle->casLogout($this->getTGC());
 		unset($handle);
 		
 		if (file_exists($this->getCookieFile())) unlink($this->getCookieFile());
 		
-		$query = $this->dbHandle->prepare("DELETE FROM " . DB_TABLE . " WHERE sessionKey = :key");
+		$query = $this->dbHandle->prepare("UPDATE " . DB_TABLE . 
+				"SET sessionKey = '', cookieFile = '' WHERE sessionKey = :key");
 		$query->bindParam(":key", $this->sessionKey);
 		$this->execute($query);
 		
