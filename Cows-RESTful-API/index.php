@@ -17,7 +17,7 @@ require_once 'includes/eventSequence.php';
 
 $app = new \Slim\Slim();
 
-set_exception_handler('error_handler');
+//set_exception_handler('error_handler');
 
 $needCallback = false;
 $callback = "";
@@ -193,7 +193,9 @@ $app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $
 		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
 		unset($params['sessionKey']);
 		$curl = new CurlWrapper($sess->getCookieFile());
-		$curl->createEvent($siteId, $params);
+		$out = $curl->createEvent($siteId, $params);
+		$app->response()->setBody($out);
+		$app->response()->setStatus(201);
 	}
 
 	else	{

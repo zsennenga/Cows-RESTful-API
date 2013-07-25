@@ -260,26 +260,38 @@ class CurlWrapper	{
 		if (!isset($params['Categories'])) throwError(ERROR_PARAMETERS, "Categories must be set",400);
 		$cat = urldecode($params['Categories']);
 		unset($params['Categories']);
+		
+		$catString = "";
 		if (strlen($cat) > 0) $cat = explode("&",$cat);
 		$appendString = "";
 		foreach($cat as $str)	{
-			$appendString .= "&Categories=" . urlencode($str);
+			$catString .= "&Categories=" . urlencode($str);
 		}
 		
+		$locString = "";
 		if (isset($params['Locations']))	{
 			$loc = urldecode($params['Locations']);
 			unset($params['Locations']);
 			if (strlen($loc) > 0) $loc = explode("&",$loc);
 			foreach($loc as $str)	{
-				$appendString .= "&DisplayLocations=" . urlencode($str);
+				$locString .= "&DisplayLocations=" . urlencode($str);
 			}
 		}
 		
+		if ($catString != "")	{
+			$appendString .= catString;
+		}
+		
+		if ($locString != "")	{
+			$appendString .= locString;
+		}
+		
 		$url = COWS_BASE_PATH . $siteId . COWS_EVENT_PATH;
-		$params = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString . "&siteId=" . $siteId;
-		$out = $this->postWithParameters($url,$params);
+		$paramsFinal = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString . "&siteId=" . $siteId;
+		$out = $this->postWithParameters($url,$paramsFinal);
 		$doc = new DocumentWrapper($out);
 		$doc->findCowsError();
+		return getEventId($siteId,$params,$cats);
 	}
 	/**
 	 * Gets event data for a single event
@@ -292,6 +304,27 @@ class CurlWrapper	{
 		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/details/" . $eventId);
 		$doc = new DocumentWrapper($out);
 		return $doc->parseEvent();
+	}
+	
+	private function getEventId($siteId,$params, $cats)	{	
+		$paramsNew = array();
+		$url = COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/jsonbyday";
+		$paramsNew['startDate'] = $params['StartDate'];
+		$paramsNew['endDate'] = $params['EndDate'];
+		$paramsNew = http_build_query($paramsNew);
+		$paramsNew .= $cats;
+		$out = $this->getWithParameters($url,$paramsNew);
+		$out = json_decode($out);
+		
+		foreach ($out as $event)	{
+			if ($event['t'] == $params['title'] &&
+				$event['l'] == R.$params['BuildingAndRoom'])	{
+				
+				return json_encode(array(
+						"eventId" => $out['i']
+				));
+			}
+		}
 	}
 }
 ?>

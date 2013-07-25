@@ -28,7 +28,14 @@ function error_handler($e)	{
 function throwError($code,$message,$status = null)	{
 	if ($status == null) $status = 500;
 	$app = \Slim\Slim::getInstance();
-	$app->halt($status,generateError($code,$message));
+	try	{
+		$app->halt($status,generateError($code,$message));
+	}
+	catch (Exception $e)	{
+		header(':', true, $status);
+		echo generateError($code,$message);
+		exit(0);
+	}
 }
 /**
  * Handles json callback
