@@ -17,39 +17,14 @@ require_once 'includes/eventSequence.php';
 
 $app = new \Slim\Slim();
 
+$app->add(new CowsMiddleware());
+$app->view(new CowsView());
+
 //set_exception_handler('error_handler');
 
-$needCallback = false;
-$callback = "";
-if ($app->request()->params('callback') != null)	{
-	$needCallback = true;
-	$callback = $app->request()->params('callback');
-}
-
-$sess = null;
-if ($app->request()->params('sessionKey') != null)	{
-	$sess = new SessionWrapper($app->request()->params('sessionKey'));
-}
-
-if ($app->request()->params('signature') != null)	{
-	if ($sess == null)	{
-		if ($app->request()->params('publicKey') != null)	{
-			if (!SessionWrapper::checkAltKey())	{
-				throwError(ERROR_PARAMETERS, "Invalid signature");
-			}
-		}
-		else throwError(ERROR_PARAMETERS, "Signed requests must include a sessionKey or publicKey", 400);
-	}
-	if (!$sess->checkKey())	{
-		throwError(ERROR_PARAMETERS, "Invalid signature");
-	}
-}
-else	{
-	throwError(ERROR_PARAMETERS, "All requests must be signed.", 400);
-}
-
-$app->response()->setBody(doJson(array(),$needCallback,$callback));
 $app->contentType('application/json');
+
+$env = $app->environment()->getInstance();
 
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
@@ -93,7 +68,7 @@ $app->get('/', function()	{
 				)
 		);
 		$methods = array("/session/:siteId" => $session, "/session/:key" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
-		$app->response()->setBody(doJson($methods,$needCallback,$callback));
+		$app->render(200,$methods);
 	}
 	else {
 		$app->contentType('text/html');
@@ -102,7 +77,7 @@ $app->get('/', function()	{
 	
 });
 
-$app->post('/session/:siteId/', function ($siteId) use ($needCallback, $callback, $sess) {
+$app->post('/session/:siteId/', function ($siteId) {
 	$app = \Slim\Slim::getInstance();
 	$curl = CurlWrapper::CreateWithoutCookie();
 	
@@ -117,20 +92,19 @@ $app->post('/session/:siteId/', function ($siteId) use ($needCallback, $callback
 	if (!$curl->validateSiteID($siteId))	{
 		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 	}
-	$sess = SessionWrapper::createSession($tgc, $siteId);
+	$env['sess.instance']= new SessionWrapper($$tgc, $siteId);
 	$app->response()->setStatus(201);
-	$app->response()->setBody(doJson(array('sessionKey' => $sess->getSessionKey()),$needCallback,$callback));
 
 });
 
 $app->delete('/session/:key/', function($key) {
 	$app = \Slim\Slim::getInstance();
-	$sess = new SessionWrapper($key);
-	$sess->destroySession();
+	$env['sess.instance']= new SessionWrapper($key);
+	$env['sess.instance']->destroySession();
 	$app->response()->status(200);
 });
 
-$app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $sess){
+$app->map('/event/:siteId/', function ($siteId){
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
@@ -167,14 +141,14 @@ $app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $
 		
 		//Build RSS object
 		//Feed cows the whole batch of $params parameters
-		if ($sess != null)	{
+		if ($env['sess.instance']!= null)	{
 			$cows = new cowsRss();
 			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 		}
 		else {
-			$curl = new CurlHandle($sess->getSessionKey());
+			$curl = new CurlHandle($env['sess.instance']->getSessionKey());
 			$cows = new CowsRss();
-			$cows->setFeedData($curl->getFeed($sess->getSiteId(),$params));
+			$cows->setFeedData($curl->getFeed($env['sess.instance']->getSiteId(),$params));
 		}
 		if ($timeBounded)	{
 			$sequence = eventSequence::createSequenceFromArrayTimeBounded(
@@ -183,8 +157,7 @@ $app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $
 		else	{
 			$sequence = new eventSequence($cows->getData(time()));
 		}
-		$app->response()->setBody(doJson($sequence->toArray(),$needCallback,$callback));
-		$app->response()->setStatus(200);
+		$app->render(200,$sequence->toArray());
 	}
 	
 	else if ($method == 'POST')	{
@@ -192,10 +165,9 @@ $app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $
 		unset($params['signature']);
 		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
 		unset($params['sessionKey']);
-		$curl = new CurlWrapper($sess->getCookieFile());
+		$curl = new CurlWrapper($env['sess.instance']->getCookieFile());
 		$out = $curl->createEvent($siteId, $params);
-		$app->response()->setBody($out);
-		$app->response()->setStatus(201);
+		$app->render(201,$out);
 	}
 
 	else	{
@@ -203,25 +175,25 @@ $app->map('/event/:siteId/', function ($siteId)	use ($needCallback, $callback, $
 	}
 })->via('GET','POST');
 
-$app->map('/event/:siteId/:eventId/', function($siteId,$eventId) use ($needCallback, $callback, $sess)	{
+$app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 	
 	$app = \Slim\Slim::getInstance();
 	$method = $app->request()->getMethod();
 	
 	if ($method == 'GET')	{
 		if ($app->request()->get("sessionKey") !== null)	{
-			$curl = new CurlWrapper($sess->getCookieFile());
+			$curl = new CurlWrapper($env['sess.instance']->getCookieFile());
 		}
 		else	{
 			$curl = CurlWrapper::CreateWithoutCookie();
 		}
-		$app->response()->setBody($curl->getSingleEvent($siteId, $eventId));
+		$app->render(200,$curl->getSingleEvent($siteId, $eventId));
 	}
 	else if ($method == 'DELETE')	{
 		if (!$app->request()->get('sessionKey') === null)	{
 			throwError(ERROR_PARAMETERS, "You must provite a sessionKey to access this interface",400);
 		}
-		$curl = new CurlWrapper($sess->getCookieFile());
+		$curl = new CurlWrapper($env['sess.instance']->getCookieFile());
 		$curl->deleteEvent($siteId, $eventId);
 		$app->response()->setStatus(200);
 	}
@@ -242,7 +214,7 @@ $app->get('/error/', function()	{
 			"-7" => "ERROR_DB",
 			"-8" => "ERROR_COWS"
 	);
-	$app->response()->setBody(doJson($out,$needCallback,$callback));
+	$app->render(200,$out);
 });
 
 $app->notFound(function ()	{

@@ -8,7 +8,7 @@
  * @return Error array
  */
 function generateError($code, $message)	{
-	return json_encode(array("code" => $code, "message" => $message));
+	return array("code" => $code, "message" => $message);
 }
 /**
  * Alternative exception handler
@@ -16,7 +16,8 @@ function generateError($code, $message)	{
  */
 function error_handler($e)	{
 	$app = \Slim\Slim::getInstance();
-	$app->halt(500,generateError(ERROR_GENERIC,$e->getMessage()));
+	$app->render(500,generateError(ERROR_GENERIC,$e->getMessage()));
+	$app->stop();
 }
 /**
  * 
@@ -29,25 +30,13 @@ function throwError($code,$message,$status = null)	{
 	if ($status == null) $status = 500;
 	$app = \Slim\Slim::getInstance();
 	try	{
-		$app->halt($status,generateError($code,$message));
+		$app->render(500,generateError(ERROR_GENERIC,$message));
+		$app->stop();
 	}
 	catch (Exception $e)	{
 		header(':', true, $status);
-		echo generateError($code,$message);
+		echo json_encode(generateError($code,$message));
 		exit(0);
 	}
-}
-/**
- * Handles json callback
- * @param Array $message
- * @param Bool $needCallback
- * @param String $callback
- * @return json output
- */
-function doJson($message,$needCallback,$callback)	{
-	if ($needCallback) 
-		return $callback . "(" . json_encode($message) . ")";
-	else 
-		return json_encode($message);
 }
 ?>

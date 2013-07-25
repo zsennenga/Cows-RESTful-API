@@ -320,9 +320,9 @@ class CurlWrapper	{
 			if ($event['t'] == $params['title'] &&
 				$event['l'] == R.$params['BuildingAndRoom'])	{
 				
-				return json_encode(array(
+				return array(
 						"eventId" => $out['i']
-				));
+				);
 			}
 		}
 	}
