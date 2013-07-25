@@ -22,21 +22,22 @@ class CowsMiddleware extends \Slim\Middleware
 		if ($app->request()->params('signature') != null)	{
 			if ($app->request()->params('publicKey') != null)	{
 				if (!SessionWrapper::checkKey())	{
-					throwError(ERROR_PARAMETERS, "Invalid signature");
+					$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
+					$end = true;
 				}
 				$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
 			}
-			else throwError(ERROR_PARAMETERS, "Signed requests must include a publicKey", 400);
+			else {
+				$app->render(400,generateError(ERROR_PARAMETERS, "Signed requests must include a publicKey")); 
+				$end = true;
+			}
 		}
 		else	{
-			throwError(ERROR_PARAMETERS, "All requests must be signed.", 400);
+			$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be signed."));
+			$end = true;
 		}
 		
-		$this->next->call();
-	}
-	
-	public function appendData()	{
-			
+		if (!$end) $this->next->call();
 	}
 }
 ?>

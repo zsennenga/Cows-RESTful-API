@@ -29,14 +29,7 @@ function error_handler($e)	{
 function throwError($code,$message,$status = null)	{
 	if ($status == null) $status = 500;
 	$app = \Slim\Slim::getInstance();
-	try	{
-		$app->render(500,generateError(ERROR_GENERIC,$message));
-		$app->stop();
-	}
-	catch (Exception $e)	{
-		header(':', true, $status);
-		echo json_encode(generateError($code,$message));
-		exit(0);
-	}
+	$app->render(500,generateError(ERROR_GENERIC,$message));
+	$app->stop();
 }
 ?>

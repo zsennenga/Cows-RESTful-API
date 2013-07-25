@@ -13,14 +13,14 @@ require_once 'includes/CurlWrapper.php';
 require_once 'includes/CowsRSS.php';
 require_once 'includes/eventSequence.php';
 
+set_exception_handler('error_handler');
+
 \Slim\Slim::registerAutoloader();
 
 $app = new \Slim\Slim();
 
 $app->add(new CowsMiddleware());
 $app->view(new CowsView());
-
-//set_exception_handler('error_handler');
 
 $app->contentType('application/json');
 
