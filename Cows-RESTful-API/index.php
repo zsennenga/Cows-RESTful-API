@@ -79,6 +79,7 @@ $app->get('/', function()	{
 
 $app->post('/session/:siteId/', function ($siteId) {
 	$app = \Slim\Slim::getInstance();
+	$env = $app->environment()->getInstance();
 	$curl = CurlWrapper::CreateWithoutCookie();
 	
 	$tgc = $app->request()->params('tgc');
@@ -92,21 +93,23 @@ $app->post('/session/:siteId/', function ($siteId) {
 	if (!$curl->validateSiteID($siteId))	{
 		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 	}
-	$env['sess.instance']= new SessionWrapper($$tgc, $siteId);
-	$app->response()->setStatus(201);
-
+	
+	$env['sess.instance']->createSession($tgc,$siteId);
+	
+	$app->render(201,array());
 });
 
-$app->delete('/session/:key/', function($key) {
+$app->delete('/session/', function() {
 	$app = \Slim\Slim::getInstance();
-	$env['sess.instance']= new SessionWrapper($key);
+	$env = $app->environment()->getInstance();
 	$env['sess.instance']->destroySession();
-	$app->response()->status(200);
+	$app->render(200,array());
 });
 
 $app->map('/event/:siteId/', function ($siteId){
 	
 	$app = \Slim\Slim::getInstance();
+	$env = $app->environment()->getInstance();
 	$method = $app->request()->getMethod();
 
 	$timeBounded = false;
@@ -130,14 +133,6 @@ $app->map('/event/:siteId/', function ($siteId){
 		else if (isset($params['timeStart']) || isset($params['timeEnd']))	{
 				throwError(ERROR_PARAMETERS, "Time ranges must include both bounds", 400);
 		}
-		$curl = CurlWrapper::CreateWithoutCookie();
-		if (!$curl->validateSiteID($siteId))	{
-			throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
-		}
-		else if (isset($params['sessionKey']))	{
-			unset($params['sessionKey']);
-		}
-		unset($curl);
 		
 		//Build RSS object
 		//Feed cows the whole batch of $params parameters
@@ -146,7 +141,7 @@ $app->map('/event/:siteId/', function ($siteId){
 			$cows->setFeedUrl(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 		}
 		else {
-			$curl = new CurlHandle($env['sess.instance']->getSessionKey());
+			$curl = new CurlHandle($env['sess.instance']->getCookieFile());
 			$cows = new CowsRss();
 			$cows->setFeedData($curl->getFeed($env['sess.instance']->getSiteId(),$params));
 		}
@@ -163,8 +158,7 @@ $app->map('/event/:siteId/', function ($siteId){
 	else if ($method == 'POST')	{
 		$params = $app->request()->params();
 		unset($params['signature']);
-		if (!isset($params['sessionKey'])) throwError(ERROR_PARAMETERS, "SessionKey must be set", 400);
-		unset($params['sessionKey']);
+		unset($params['publicKey']);
 		$curl = new CurlWrapper($env['sess.instance']->getCookieFile());
 		$out = $curl->createEvent($siteId, $params);
 		$app->render(201,$out);
@@ -178,6 +172,7 @@ $app->map('/event/:siteId/', function ($siteId){
 $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 	
 	$app = \Slim\Slim::getInstance();
+	$env = $app->environment()->getInstance();
 	$method = $app->request()->getMethod();
 	
 	if ($method == 'GET')	{
@@ -195,7 +190,7 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		}
 		$curl = new CurlWrapper($env['sess.instance']->getCookieFile());
 		$curl->deleteEvent($siteId, $eventId);
-		$app->response()->setStatus(200);
+		$app->render(200,array());
 	}
 	else	{
 		$app->response()->setStatus(501);

@@ -3,7 +3,6 @@
 class CurlWrapper	{
 	private $curlHandle;
 	private $cookieFile;
-	private $response;
 	
 	/**
 	 *
@@ -160,7 +159,8 @@ class CurlWrapper	{
 			return trim($out);
 		}	
 		else	{
-			throwError(ERROR_CAS, "Unable to get service ticket");
+			if (strpos($out,"INVALID_TICKET") !== false) throwError(ERROR_CAS, "Invalid TGC, Unable to get service ticket");
+			else throwError(ERROR_CAS, "Unable to get service ticket");
 		}
 	}
 	
@@ -279,11 +279,11 @@ class CurlWrapper	{
 		}
 		
 		if ($catString != "")	{
-			$appendString .= catString;
+			$appendString .= $catString;
 		}
 		
 		if ($locString != "")	{
-			$appendString .= locString;
+			$appendString .= $locString;
 		}
 		
 		$url = COWS_BASE_PATH . $siteId . COWS_EVENT_PATH;
@@ -291,7 +291,7 @@ class CurlWrapper	{
 		$out = $this->postWithParameters($url,$paramsFinal);
 		$doc = new DocumentWrapper($out);
 		$doc->findCowsError();
-		return getEventId($siteId,$params,$cats);
+		return $this->getEventId($siteId,$params,$cat);
 	}
 	/**
 	 * Gets event data for a single event
@@ -312,19 +312,25 @@ class CurlWrapper	{
 		$paramsNew['startDate'] = $params['StartDate'];
 		$paramsNew['endDate'] = $params['EndDate'];
 		$paramsNew = http_build_query($paramsNew);
-		$paramsNew .= $cats;
+		foreach($cats as $cat)	{
+			$paramsNew .= "&categories=" . $cat;
+		}
 		$out = $this->getWithParameters($url,$paramsNew);
-		$out = json_decode($out);
+		$out = json_decode($out,true);
 		
-		foreach ($out as $event)	{
-			if ($event['t'] == $params['title'] &&
-				$event['l'] == R.$params['BuildingAndRoom'])	{
-				
+		if (!is_array($out))	{
+			throwError(ERROR_COWS, "Invalid json given to find eventId" ,500);
+		}
+		
+		foreach ($out['e'] as $event)	{
+			if ($event[0]['t'] == $params['EventTitle'] &&
+				$event[0]['l'] == "R" . $params['BuildingAndRoom'])	{
 				return array(
-						"eventId" => $out['i']
+						"eventId" => $event[0]['i']
 				);
 			}
 		}
+		throwError(ERROR_COWS, "Could not find eventId");
 	}
 }
 ?>

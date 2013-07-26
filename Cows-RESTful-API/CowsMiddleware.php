@@ -9,6 +9,7 @@ class CowsMiddleware extends \Slim\Middleware
 		// Get reference to application
 		$app = $this->app;
 		$env = $app->environment()->getInstance();
+		$end = false;
 
 		// Capitalize response body
 		
@@ -25,19 +26,35 @@ class CowsMiddleware extends \Slim\Middleware
 					$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
 					$end = true;
 				}
-				$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
+				
+				$path = $app->request()->getPathInfo();
+				if ($path != "/" && $path != "/error" && $path != "/error/")	{
+					$stuff = explode("/",$path);
+					$siteId = $stuff[2];
+					$curl = CurlWrapper::CreateWithoutCookie();
+					if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
+						throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
+					}
+					try 	{
+						$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
+					}
+					catch (Exception $e)	{
+						$end = true;
+					}
+				}
 			}
 			else {
 				$app->render(400,generateError(ERROR_PARAMETERS, "Signed requests must include a publicKey")); 
 				$end = true;
 			}
 		}
-		else	{
+		else	{	
 			$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be signed."));
 			$end = true;
 		}
-		
-		if (!$end) $this->next->call();
+		if (!$end) {
+			$this->next->call();
+		}
 	}
 }
 ?>

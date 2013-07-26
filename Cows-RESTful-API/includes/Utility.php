@@ -29,7 +29,7 @@ function error_handler($e)	{
 function throwError($code,$message,$status = null)	{
 	if ($status == null) $status = 500;
 	$app = \Slim\Slim::getInstance();
-	$app->render(500,generateError(ERROR_GENERIC,$message));
+	$app->render($status,generateError($code,$message));
 	$app->stop();
 }
 ?>

@@ -7,6 +7,7 @@ class SessionWrapper	{
 	private $dbHandle;
 	private $sessionVar;
 	private $publicKey;
+	private $siteId;
 	
 	public function __construct($publicKey)	{
 		$this->publicKey = $publicKey;
@@ -18,20 +19,27 @@ class SessionWrapper	{
 		if ($this->sessionVar === false)	{
 			throwError(ERROR_PARAMS, "Invalid public key", 400);
 		}
+	}
+	
+	public function createSession($tgc, $siteId)	{
+		$this->siteId = $siteId;
 		if ($this->sessionVar['cookieFile'] == '')	{
 			$curl = new CurlWrapper();
 			$cookie = $curl->getCookieFile();
-			$curl->cowsLogin($tgc, $siteID);
+			$curl->cowsLogin($tgc, $siteId);
 			unset($curl);
-			
-			$query = $dbHandle->prepare("UPDATE " . DB_TABLE
+			$query = $this->dbHandle->prepare("UPDATE " . DB_TABLE
 					. " SET cookieFile = :cookie"
 					. " WHERE publicKey = :key");
 			$query->bindParam(":cookie", $cookie, PDO::PARAM_STR);
-			$query->bindParam(":key", $pubKey, PDO::PARAM_STR);
+			$query->bindParam(":key",$this->sessionVar['publicKey'], PDO::PARAM_STR);
 			if ($query->execute() === false)	{
 				throwError(ERROR_DB,$query->errorInfo());
 			}
+		}
+		else	{
+			$curl = new CurlWrapper($this->sessionVar['cookieFile']);
+			$curl->cowsLogin($tgc, $siteId);
 		}
 	}
 	
@@ -43,36 +51,21 @@ class SessionWrapper	{
 		return $this->publicKey;
 	}
 
-	public static function checkKey ()	{
-		$app = new \Slim\Slim();
-		
-		$inputKey = $app->request()->params('signature');
-		$pubKey = $app->request()->params('publicKey');
-		
-		$data = $_SERVER['REQUEST_METHOD'].$_SERVER['REQUEST_URI'];
-		//Regex from http://stackoverflow.com/questions/1842681/regular-expression-to-remove-one-parameter-from-query-string
-		$params = preg_replace("/&signature(\=[^&]*)?(?=&|$)|^signature(\=[^&]*)?(&|$)/", "", $_SERVER['QUERY_STRING'],1);
-		$data = $data . $params;
-		$outputKey = hash_hmac("sha256",$data,$pubKey);
-		return strtolower($outputKey) == strtolower($inputKey);
-	}
-	
 	public function __destruct()	{
 		unset($this->dbHandle);
 	}
 	
 	public function destroySession()	{
 		$handle = new CurlWrapper($this->getCookieFile());
-		$handle->cowsLogout($this->getSiteId());
+		$handle->cowsLogout($this->siteId);
 		unset($handle);
 		
-		if (file_exists($this->getCookieFile())) unlink($this->getCookieFile());
-		
 		$query = $this->dbHandle->prepare("UPDATE " . DB_TABLE . 
-				"SET cookieFile = '' WHERE publicKey = :key");
+				" SET cookieFile = '' WHERE publicKey = :key");
 		$query->bindParam(":key", $this->publicKey);
 		$this->execute($query);
 		
+		if (file_exists($this->getCookieFile())) unlink($this->getCookieFile());
 		unset($this->dbHandle);
 		unset($this->sessionVar);
 	}
@@ -85,5 +78,40 @@ class SessionWrapper	{
 			throwError(ERROR_DB,$query->errorInfo());
 		}
 	}
+	
+	public static function checkKey ()	{
+		$app = new \Slim\Slim();
+	
+		$inputKey = $_REQUEST['signature'];
+		$pubKey = $app->request()->params('publicKey');
+		
+		$dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
+		$query = $dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE publicKey = :key");
+		$query->bindParam(":key", $pubKey, PDO::PARAM_STR);
+		if ($query->execute() === false)	{
+			return false;
+		}
+		$out = $query->fetch();
+		if ($out === false)	{
+			return false;
+		}
+		$privKey = $out['privateKey'];
+	
+		$data = $_SERVER['REQUEST_METHOD'];
+		$qstring =  explode("?",$_SERVER['REQUEST_URI']);
+		if (count($qstring) >= 2)	{
+			//Regex from http://stackoverflow.com/questions/1842681/regular-expression-to-remove-one-parameter-from-query-string
+			$data = $data . $qstring[0] . preg_replace('/&signature(\=[^&]*)?(?=&|$)|^signature(\=[^&]*)?(&|$)/', "", $qstring[1],1);
+		}
+		else {
+			$data = $data . $_SERVER['REQUEST_URI'];
+			$params = $app->request()->params();
+			unset($params['signature']);
+			$data = $data . http_build_query($params);
+		}
+		$outputKey = hash_hmac("sha256",$data,$privKey);
+		return $outputKey === $inputKey;
+	}
+	
 }
 ?>

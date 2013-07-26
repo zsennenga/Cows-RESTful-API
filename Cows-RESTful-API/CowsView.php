@@ -9,10 +9,16 @@ class CowsView extends \Slim\View
     	
     	$app->response()->setStatus($template);
     	
+    	$out = $this->data->all();
+    	unset($out['flash']);
+    	$out = json_encode($out);
+    	
+    	if ($out === null) $out = json_encode(array());
+    	
     	if ($env['callback.need'] !== false)	{
-    		return $env['callback.message'] . "(" . json_encode($this->data->all()) . ")"; 
+    		return $env['callback.message'] . "(" . $out . ")"; 
     	}
-    	else return json_encode($this->data->all());	
+    	else return $out;	
     }
 }
 ?>

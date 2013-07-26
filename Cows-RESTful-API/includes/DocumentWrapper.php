@@ -82,7 +82,7 @@ class DocumentWrapper	{
 		$q = $this->doc->query('//div[@id="event-dialog"]');
 		$retArray['title'] = $q->item(0)->getAttribute("title");
 		
-		return doJson($retArray,$needCallback,$callback);
+		return $retArray;
 	}
 }
 ?>
