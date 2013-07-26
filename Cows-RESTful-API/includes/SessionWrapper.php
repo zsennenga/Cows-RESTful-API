@@ -36,6 +36,13 @@ class SessionWrapper	{
 			if ($query->execute() === false)	{
 				throwError(ERROR_DB,$query->errorInfo());
 			}
+			$query = $this->dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE publicKey = :key");
+			$query->bindParam(":key", $this->publicKey, PDO::PARAM_STR);
+			$this->execute($query);
+			$this->sessionVar = $query->fetch();
+			if ($this->sessionVar === false)	{
+				throwError(ERROR_PARAMS, "Invalid public key", 400);
+			}
 		}
 		else	{
 			$curl = new CurlWrapper($this->sessionVar['cookieFile']);
@@ -56,7 +63,8 @@ class SessionWrapper	{
 	}
 	
 	public function destroySession()	{
-		$handle = new CurlWrapper($this->getCookieFile());
+		$cookie = $this->getCookieFile();
+		$handle = new CurlWrapper($cookie);
 		$handle->cowsLogout($this->siteId);
 		unset($handle);
 		
@@ -65,7 +73,7 @@ class SessionWrapper	{
 		$query->bindParam(":key", $this->publicKey);
 		$this->execute($query);
 		
-		if (file_exists($this->getCookieFile())) unlink($this->getCookieFile());
+		if (file_exists($cookie)) unlink($cookie);
 		unset($this->dbHandle);
 		unset($this->sessionVar);
 	}

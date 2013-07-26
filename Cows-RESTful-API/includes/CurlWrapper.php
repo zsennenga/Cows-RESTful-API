@@ -22,7 +22,7 @@ class CurlWrapper	{
 	
 	public function __construct($cookieFile = null)	{
 		$this->curlHandle = curl_init();
-			if ($cookieFile == null)	{
+		if ($cookieFile == null && !(strlen($cookieFile) == 0 && !is_null($cookieFile)))	{
 			$this->cookieFile = $this->genFilename();
 		}
 		else $this->cookieFile = $cookieFile;
@@ -42,11 +42,12 @@ class CurlWrapper	{
 	 */
 	public static function CreateWithoutCookie()	{
 		$curl = new CurlWrapper();
+		if (file_exists($curl->cookieFile)) unlink($curl->cookieFile);
 		$curl->clearCookieHandler();
 		return $curl;
 	}
 	
-	public function clearCookieHandler()	{
+	private function clearCookieHandler()	{
 		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, null);
 		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, null);
 	}
