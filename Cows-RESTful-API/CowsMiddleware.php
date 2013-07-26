@@ -22,7 +22,7 @@ class CowsMiddleware extends \Slim\Middleware
 		
 		if (isset($_REQUEST['time']))	{
 			$time = $_REQUEST['time'];
-			if ($time < strtotime("-15 Minutes",time()) || $time > strtotime("+15 Minutes",time()))	{
+			if ($time < strtotime("-5 Minutes",time()) || $time > strtotime("+5 Minutes",time()))	{
 				$app->render(400,generateError(ERROR_PARAMETERS, "Signature has expired."));
 				$end = true;
 			}
