@@ -26,8 +26,8 @@ class CowsMiddleware extends \Slim\Middleware
 				$app->render(400,generateError(ERROR_PARAMETERS, "Signature has expired."));
 				$end = true;
 			}
-			if ($app->request()->params('signature') != null)	{
-				if ($app->request()->params('publicKey') != null)	{
+			if (isset($_REQUEST['signature']) != null)	{
+				if (isset($_REQUEST['publicKey']) != null)	{
 					if (!SessionWrapper::checkKey())	{
 						$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
 						$end = true;
@@ -42,7 +42,7 @@ class CowsMiddleware extends \Slim\Middleware
 							throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
 						}
 						try 	{
-							$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
+							$env['sess.instance'] = new SessionWrapper($_REQUEST['publicKey']);
 						}
 						catch (Exception $e)	{
 							$end = true;
