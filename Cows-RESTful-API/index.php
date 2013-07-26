@@ -96,7 +96,7 @@ $app->post('/session/:siteId/', function ($siteId) {
 	
 	$env['sess.instance']->createSession($tgc,$siteId);
 	
-	$app->render(201,array("cookie" => $env['sess.instance']->getCookieFile()));
+	$app->render(201,array());
 });
 
 $app->delete('/session/', function() {
