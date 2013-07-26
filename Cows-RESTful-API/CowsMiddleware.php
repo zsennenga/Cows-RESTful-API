@@ -20,38 +20,50 @@ class CowsMiddleware extends \Slim\Middleware
 			$env['callback.message'] = $app->request()->params('callback');
 		}
 		
-		if ($app->request()->params('signature') != null)	{
-			if ($app->request()->params('publicKey') != null)	{
-				if (!SessionWrapper::checkKey())	{
-					$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
-					$end = true;
-				}
-				
-				$path = $app->request()->getPathInfo();
-				if ($path != "/" && $path != "/error" && $path != "/error/")	{
-					$stuff = explode("/",$path);
-					$siteId = $stuff[2];
-					$curl = CurlWrapper::CreateWithoutCookie();
-					if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
-						throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
-					}
-					try 	{
-						$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
-					}
-					catch (Exception $e)	{
+		if (isset($_REQUEST['time']))	{
+			$time = $_REQUEST['time'];
+			if ($time < strtotime("-15 Minutes",time()) || $time > strtotime("+15 Minutes",time()))	{
+				$app->render(400,generateError(ERROR_PARAMETERS, "Signature has expired."));
+				$end = true;
+			}
+			if ($app->request()->params('signature') != null)	{
+				if ($app->request()->params('publicKey') != null)	{
+					if (!SessionWrapper::checkKey())	{
+						$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
 						$end = true;
 					}
+			
+					$path = $app->request()->getPathInfo();
+					if ($path != "/" && $path != "/error" && $path != "/error/")	{
+						$stuff = explode("/",$path);
+						$siteId = $stuff[2];
+						$curl = CurlWrapper::CreateWithoutCookie();
+						if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
+							throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
+						}
+						try 	{
+							$env['sess.instance'] = new SessionWrapper($app->request()->params('publicKey'));
+						}
+						catch (Exception $e)	{
+							$end = true;
+						}
+					}
+				}
+				else {
+					$app->render(400,generateError(ERROR_PARAMETERS, "Signed requests must include a publicKey"));
+					$end = true;
 				}
 			}
-			else {
-				$app->render(400,generateError(ERROR_PARAMETERS, "Signed requests must include a publicKey")); 
+			else	{
+				$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be signed."));
 				$end = true;
 			}
 		}
-		else	{	
-			$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be signed."));
+		else 	{
+			$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be timestamped."));
 			$end = true;
 		}
+		
 		if (!$end) {
 			$this->next->call();
 		}
