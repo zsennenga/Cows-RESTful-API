@@ -34,42 +34,42 @@ $app->get('/', function()	{
 		$session = array(
 				"POST" => array(
 						"requiresAuth" => false,
-						"requiredParameters" => "tgc",
+						"requiredParameters" => "time,publicKey,signature,tgc",
 						"description" => "Generate a session key which will allow you to use COWS services which require authentication"
 				),
 		);
 		$sesskey = array(
 				"DELETE" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "",
+						"requiredParameters" => "time,publicKey,signature",
 						"description" => "Destroys a session, and makes a good effort to log you out of COWS and CAS"
 				)
 		);
 		$event = array(
 				"GET" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "sessionKey (if auth is required)",
+						"requiredParameters" => "time,publicKey,signature",
 						"description" => "Gets all events that meet the parameters given as GET parameters. Only requires auth if anonymous mode is off on the COWS site"
 				),
 				"POST" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "sessionKey, All Event Parameters",
+						"requiredParameters" => "time,publicKey,signature, All Event Parameters",
 						"description" => "Creates an event with the given Parameters"
 				)
 		);
 		$eventid = array(
 				"GET" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "sessionKey (If auth is required)",
+						"requiredParameters" => "time,publicKey,signature",
 						"description" => "Gets the information with the Event with the specified ID"
 				),
 				"DELETE" => array(
 						"requiresAuth" => true,
-						"requiredParameters" => "sessionKey (Via GET or POST due to the limitations of DELETE)",
+						"requiredParameters" => "time,publicKey,signature",
 						"description" => "Deletes the event with the Specified ID"
 				)
 		);
-		$methods = array("/session/:siteId" => $session, "/session/:key" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
+		$methods = array("/session/:siteId" => $session, "/session/" => $sesskey, "/event/:siteId" => $event, "/event/:siteId/:id" => $eventid);
 		$app->render(200,$methods);
 	}
 	else {
