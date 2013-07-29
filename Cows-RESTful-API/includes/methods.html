@@ -52,6 +52,33 @@
 
 <p>This is intended to replace Cows-TV-Server, Cows-Tablet-Server and Cows-Mobile-Server with a single, more unified API.</p>
 
+<h2>Authentication</h2>
+
+<p>The API implements a version of an authentication scheme known as 2-legged OAuth. This involves both the client and the<br />
+server calculating a time dependent hash, and the server verifying the two hashes match.</p>
+
+<p>At some point before execution, every client is assigned a public/private keypair. The public key is inconsequential,<br />
+but the private key must be kept secret, and after it is initially given to the client, must never be sent over the wire.</p>
+
+<p>The signature hash is calculated via</p>
+
+<pre><code>php
+hash_hmac('sha256',$requestMethod.$requestURI.$requestParamaters.time(),$privateKey)
+
+$requestMethod: GET, POST, or DELETE
+$requestURL: The URI accessed
+$requestParameters: The parameters (except signature) used in the request.
+time(): The current time on the client.
+$privateKey: The client's private key.
+</code></pre>
+
+<p>This hash calculation is performed both by the client and the server.</p>
+
+<p>The client passes the timestamp used, their public key, and their calculated signature to the server.</p>
+
+<p>The server uses the public key to lookup the client's private key, and verifies the timestamp is within a reasonable <br />
+window (we use +/- 5 minutes). The server then calculates the signature and matches it against the client's.</p>
+
 <h2>Services Provided</h2>
 
 <p>On failure, all routes return a json object of the form:<br />
@@ -67,9 +94,14 @@
 
 <p>All of the Returns entries in the following documentation only refer to successful executions.</p>
 
+<p>As discussed in the Authentication section, all requests require time, publicKey, and signature paramaters.<br />
+  These are excluded from the lists of paramaters.</p>
+
+<p>Authentication? refers to the need to run POST /session/:siteid before your query and DELETE /session afterwards</p>
+
 <p>GET /</p>
 
-<pre><code>  Paramaters: format
+<pre><code>  Paramaters: format(only json)
   Returns: API documentation
   Authentication?: No
   Description: Outputs API documentation in the specified format (currently json or plain (by default)).
@@ -93,7 +125,7 @@
 
 <p>DELETE /session/:sessionKey</p>
 
-<pre><code>  Required Parameters: none
+<pre><code>  Required Parameters: None
   Returns: Nothing
   Description: Deactivates a session key, and logs you out from cows, and from the cas session represented by
     the tgc. There is no real way to verify if a cas logout was successful, so it still might be in any client's
@@ -102,7 +134,7 @@
 
 <p>GET /event</p>
 
-<pre><code>  Paramaters: sessionKey (see auth), timeStart and timeEnd (if filtering by time is desired), 
+<pre><code>  Paramaters: timeStart and timeEnd (if filtering by time is desired), 
       Filter paramaters used by COWS rss feeds (see below)
   Returns: Event Information
   Authentication?: If site is not in "anonymous mode"
@@ -111,7 +143,7 @@
 
 <p>POST /event</p>
 
-<pre><code>  Paramaters: sessionKey, Cows Event Paramaters (see below)
+<pre><code>  Paramaters: Cows Event Paramaters (see below)
   Returns: Nothing
   Authentication?: Yes
   Description: Creates an event with the specified parameters
@@ -119,7 +151,7 @@
 
 <p>GET /event/:id</p>
 
-<pre><code>  Paramaters: sessionKey (see auth)
+<pre><code>  Paramaters: None
   Returns: Event Information
   Authentication?: If site is not in "anonymous mode"
   Description: Returns a json object representing the event with the specified ID
@@ -127,7 +159,7 @@
 
 <p>DELETE /event/:id</p>
 
-<pre><code>  Paramaters: sessionkey (via GET or POST due to limitations in DELETE)
+<pre><code>  Paramaters: None  
   Returns: Nothing
   Authentication?: Yes
   Description: Deletes the event with the specified id
@@ -135,7 +167,19 @@
 
 <p>Cows Event Parameters:</p>
 
-<pre><code>(To be continued)
+<pre><code>Required Parameters:
+'EventTitle'
+'StartDate'
+'EndDate'
+'StartTime'
+'EndTime'
+'DisplayStartTime'
+'DisplayEndTime' 
+'BuildingAndRoom'
+'Categories'
+'ContactPhone'
+'EventTypeName'
+(To be continued)
 </code></pre>
 
 <p>Known Cows RSS Filters:</p>
