@@ -24,9 +24,9 @@ $privateKey = hash("sha512",$randString);
 $publicKey = hash("sha256",$comment.time());
 
 $query = $dbHandle->prepare("Insert Into " . DB_TABLE . " VALUES (:private, :public, '', '', :comment)");
-$query->bindParam(":private", $variable, PDO::PARAM_STR);
-$query->bindParam(":public", $variable, PDO::PARAM_STR);
-$query->bindParam(":comment", $variable, PDO::PARAM_STR);
+$query->bindParam(":private", $privateKey, PDO::PARAM_STR);
+$query->bindParam(":public", $publicKey, PDO::PARAM_STR);
+$query->bindParam(":comment", $comment, PDO::PARAM_STR);
 if (!$query->execute())	{
 	echo "Unable to insert into database. Error: " . $query->errorInfo() ."\n";
 	exit(0);
