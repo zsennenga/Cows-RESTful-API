@@ -65,10 +65,9 @@ window (we use +/- 5 minutes). The server then calculates the signature and matc
   POST /session/:siteId
   
       Parameters: tgc - Ticket Granting Cookie from CAS (required)
-      Returns: SessionKey
-      Authentication?: No
+      Returns: Nothing
       Description: Used to generate a key to authenticate to any cows service that requires it.
-  DELETE /session/:sessionKey
+  DELETE /session
   
       Required Parameters: None
       Returns: Nothing
@@ -84,7 +83,7 @@ window (we use +/- 5 minutes). The server then calculates the signature and matc
   POST /event
   
       Paramaters: Cows Event Paramaters (see below)
-      Returns: Nothing
+      Returns: Created Event ID
       Authentication?: Yes
       Description: Creates an event with the specified parameters
       
