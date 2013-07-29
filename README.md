@@ -15,6 +15,7 @@ but the private key must be kept secret, and after it is initially given to the 
 
 The signature hash is calculated via
 
+```php
 hash_hmac('sha256',$requestMethod.$requestURI.$requestParamaters.time(),$privateKey)
 
 $requestMethod: GET, POST, or DELETE
@@ -22,6 +23,7 @@ $requestURL: The URI accessed
 $requestParameters: The parameters (except signature) used in the request.
 time(): The current time on the client.
 $privateKey: The client's private key.
+```
 
 This hash calculation is performed both by the client and the server.
 
