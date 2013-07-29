@@ -1,6 +1,6 @@
 <?php
 
-require_once 'Utility.php'
+require_once 'Utility.php';
 
 function sessPost()	{
 	//Setup Variables
