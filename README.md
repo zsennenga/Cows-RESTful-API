@@ -72,9 +72,7 @@ window (we use +/- 5 minutes). The server then calculates the signature and matc
   
       Required Parameters: None
       Returns: Nothing
-      Description: Deactivates a session key, and logs you out from cows, and from the cas session represented by
-        the tgc. There is no real way to verify if a cas logout was successful, so it still might be in any client's
-        best interests to deauth on their end as well.
+      Description: Logs you out from COWS. Deletes all session cookies.
         
   GET /event
   
