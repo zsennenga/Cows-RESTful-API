@@ -3,12 +3,24 @@
 require_once 'Utility.php';
 require_once 'CurlWrapper.php';
 
+/**
+ * Handles all authentication/deauthentication to cows and the API
+ * 
+ * @author its-zach
+ *
+ */
 class SessionWrapper	{
 	private $dbHandle;
 	private $sessionVar;
 	private $publicKey;
 	private $siteId;
 	
+	/**
+	 * 
+	 * Given a public key generates a session wrapper
+	 * 
+	 * @param string $publicKey
+	 */
 	public function __construct($publicKey)	{
 		$this->publicKey = $publicKey;
 		$this->dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
@@ -20,14 +32,21 @@ class SessionWrapper	{
 			throwError(ERROR_PARAMS, "Invalid public key", 400);
 		}
 	}
-	
+	/**
+	 * Logs into cows with a given session
+	 * @param Ticket Granting Cookie $tgc
+	 * @param string $siteId
+	 */
 	public function createSession($tgc, $siteId)	{
 		$this->siteId = $siteId;
+		//No cookie file
 		if ($this->sessionVar['cookieFile'] == '')	{
+			//Login to cows
 			$curl = new CurlWrapper();
 			$cookie = $curl->getCookieFile();
 			$curl->cowsLogin($tgc, $siteId);
 			unset($curl);
+			//Save cookie file in the database
 			$query = $this->dbHandle->prepare("UPDATE " . DB_TABLE
 					. " SET cookieFile = :cookie"
 					. " WHERE publicKey = :key");
@@ -36,14 +55,10 @@ class SessionWrapper	{
 			if ($query->execute() === false)	{
 				throwError(ERROR_DB,$query->errorInfo());
 			}
-			$query = $this->dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE publicKey = :key");
-			$query->bindParam(":key", $this->publicKey, PDO::PARAM_STR);
-			$this->execute($query);
-			$this->sessionVar = $query->fetch();
-			if ($this->sessionVar === false)	{
-				throwError(ERROR_PARAMS, "Invalid public key", 400);
-			}
+			//Updated the $this->sessionVar variable with the most recent values
+			$this->sessionVar['cookieFile'] = $cookie;
 		}
+		//Session is still open - just perform a login to refresh the session
 		else	{
 			$curl = new CurlWrapper($this->sessionVar['cookieFile']);
 			$curl->cowsLogin($tgc, $siteId);
@@ -61,19 +76,23 @@ class SessionWrapper	{
 	public function __destruct()	{
 		unset($this->dbHandle);
 	}
-	
+	/**
+	 * Logs you out from cows, deletes your cookies
+	 */
 	public function destroySession()	{
+		//Logout from cows
 		$cookie = $this->getCookieFile();
 		$handle = new CurlWrapper($cookie);
 		$handle->cowsLogout($this->siteId);
 		unset($handle);
-		
+		//Clear cookie from DB
 		$query = $this->dbHandle->prepare("UPDATE " . DB_TABLE . 
 				" SET cookieFile = '' WHERE publicKey = :key");
 		$query->bindParam(":key", $this->publicKey);
 		$this->execute($query);
-		
+		//Destroy Cookie file
 		if (file_exists($cookie)) unlink($cookie);
+		//Clean up
 		unset($this->dbHandle);
 		unset($this->sessionVar);
 	}
@@ -86,13 +105,18 @@ class SessionWrapper	{
 			throwError(ERROR_DB,$query->errorInfo());
 		}
 	}
-	
+	/**
+	 * Checks if a signature passed in is valid
+	 * @return boolean
+	 */
 	public static function checkKey ()	{
 		$app = new \Slim\Slim();
-	
+		//$_REQUEST is used because I have had issues with Slim not parsing the parameters
+		//when this is called (this is called by middleware)
 		$inputKey = $_REQUEST['signature'];
-		$pubKey = $app->request()->params('publicKey');
+		$pubKey = $_REQUEST['publicKey'];
 		
+		//Get private key from the db based on public Key
 		$dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
 		$query = $dbHandle->prepare("SELECT * FROM " . DB_TABLE . " WHERE publicKey = :key");
 		$query->bindParam(":key", $pubKey, PDO::PARAM_STR);
@@ -104,7 +128,8 @@ class SessionWrapper	{
 			return false;
 		}
 		$privKey = $out['privateKey'];
-	
+		
+		//Parse the correct data string for hashing - remove the signature from the query string
 		$data = $_SERVER['REQUEST_METHOD'];
 		$qstring =  explode("?",$_SERVER['REQUEST_URI']);
 		if (count($qstring) >= 2)	{
@@ -117,6 +142,7 @@ class SessionWrapper	{
 			unset($params['signature']);
 			$data = $data . http_build_query($params);
 		}
+		//Check the keys
 		$outputKey = hash_hmac("sha256",$data,$privKey);
 		return $outputKey === $inputKey;
 	}

@@ -1,18 +1,20 @@
 <?php
 
 require_once 'includes/Utility.php';
-
+/**
+ * Handles variable validation and parses necessary variables
+ * @author its-zach
+ *
+ */
 class CowsMiddleware extends \Slim\Middleware
 {
 	public function call()
 	{
-		// Get reference to application
 		$app = $this->app;
 		$env = $app->environment()->getInstance();
 		$end = false;
-
-		// Capitalize response body
 		
+		//Handle Callback
 		$env['callback.need'] = false;
 		$env['callback.message'] = "";
 		if ($app->request()->params('callback') != null)	{
@@ -20,12 +22,14 @@ class CowsMiddleware extends \Slim\Middleware
 			$env['callback.message'] = $app->request()->params('callback');
 		}
 		
+		//Check Timestamp
 		if (isset($_REQUEST['time']))	{
 			$time = $_REQUEST['time'];
 			if ($time < strtotime("-5 Minutes",time()) || $time > strtotime("+5 Minutes",time()))	{
 				$app->render(400,generateError(ERROR_PARAMETERS, "Signature has expired."));
 				$end = true;
 			}
+			//Check Signature
 			if (isset($_REQUEST['signature']) != null)	{
 				if (isset($_REQUEST['publicKey']) != null)	{
 					if (!SessionWrapper::checkKey())	{

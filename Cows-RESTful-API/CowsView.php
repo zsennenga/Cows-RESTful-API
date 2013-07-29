@@ -1,5 +1,11 @@
 <?php
-
+/**
+ * 
+ * Generates all responses for the API
+ * 
+ * @author its-zach
+ *
+ */
 class CowsView extends \Slim\View
 {
     public function render($template)

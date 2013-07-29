@@ -12,6 +12,7 @@ require_once 'includes/SessionWrapper.php';
 require_once 'includes/CurlWrapper.php';
 require_once 'includes/CowsRSS.php';
 require_once 'includes/eventSequence.php';
+require_once 'includes/SimpleMiddleware.php';
 
 set_exception_handler('error_handler');
 
@@ -26,6 +27,9 @@ $app->contentType('application/json');
 
 $env = $app->environment()->getInstance();
 
+/**
+ * Dispenses documentation about the api
+ */
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
 	if ($app->request()->get("format") == "json") {
@@ -77,35 +81,31 @@ $app->get('/', function()	{
 	
 });
 
-$app->post('/session/:siteId/', function ($siteId) {
+/**
+ * Creates a session on COWS
+ */
+$app->post('/session/:siteId/', 'sessPost', function ($siteId) {
 	$app = \Slim\Slim::getInstance();
 	$env = $app->environment()->getInstance();
-	$curl = CurlWrapper::CreateWithoutCookie();
 	
 	$tgc = $app->request()->params('tgc');
-	if ($tgc === null)	{
-		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
-	}
-	else if ($curl->validateTGC($tgc) !== true)	{
-		throwError(ERROR_CAS, "Invalid TGC" . $curl->validateTGC($tgc),400);
-	}
-	
-	if (!$curl->validateSiteID($siteId))	{
-		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
-	}
 	
 	$env['sess.instance']->createSession($tgc,$siteId);
 	
 	$app->render(201,array());
 });
-
+/**
+ * Destroys a session on COWS
+ */
 $app->delete('/session/', function() {
 	$app = \Slim\Slim::getInstance();
 	$env = $app->environment()->getInstance();
 	$env['sess.instance']->destroySession();
 	$app->render(200,array());
 });
-
+/**
+ * Gets event info and creates events
+ */
 $app->map('/event/:siteId/', function ($siteId){
 	
 	$app = \Slim\Slim::getInstance();
@@ -168,7 +168,9 @@ $app->map('/event/:siteId/', function ($siteId){
 		$app->response()->setStatus(501);
 	}
 })->via('GET','POST');
-
+/**
+ * Gets single event info and deletes events
+ */
 $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 	
 	$app = \Slim\Slim::getInstance();
@@ -196,7 +198,9 @@ $app->map('/event/:siteId/:eventId/', function($siteId,$eventId)	{
 		$app->response()->setStatus(501);
 	}
 })->via('GET','DELETE')->conditions(array('id' => '[0-9]'));
-
+/**
+ * Gets error documentation
+ */
 $app->get('/error/', function()	{
 	$app = \Slim\Slim::getInstance();
 	$out = array(
@@ -211,7 +215,9 @@ $app->get('/error/', function()	{
 	);
 	$app->render(200,$out);
 });
-
+/**
+ * Handles 404 Errors
+ */
 $app->notFound(function ()	{
 	$app = \Slim\Slim::getInstance();
 	throwError(ERROR_GENERIC, "Invalid Route. Please refer to the documentation for a list of valid routes.", 404);

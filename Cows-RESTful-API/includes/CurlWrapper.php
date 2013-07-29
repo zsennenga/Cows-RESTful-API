@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * Used to abstract all HTTP functions away from other parts of the code
+ * 
+ * @author its-zach
+ *
+ */
 class CurlWrapper	{
 	private $curlHandle;
 	private $cookieFile;
@@ -46,7 +51,9 @@ class CurlWrapper	{
 		$curl->clearCookieHandler();
 		return $curl;
 	}
-	
+	/**
+	 * Remove cookie handling for a cURL instance that doesn't need cookies
+	 */
 	private function clearCookieHandler()	{
 		curl_setopt($this->curlHandle, CURLOPT_COOKIEJAR, null);
 		curl_setopt($this->curlHandle, CURLOPT_COOKIEFILE, null);
@@ -112,6 +119,8 @@ class CurlWrapper	{
 	
 	/**
 	 * Checks CAS to verify if a TGC can generate a ticket
+	 * 
+	 * It does this by checking if it can get a valid ticket for a dummy service
 	 * 
 	 * @param String $tgc
 	 * @return boolean
@@ -254,10 +263,18 @@ class CurlWrapper	{
 	public function getFeed($siteId, $params)	{
 		return $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_RSS_PATH . '?' . http_build_query($params));
 	}
-	
+	/**
+	 * Creates an event
+	 * 
+	 * @param string $siteId
+	 * @param array $params
+	 * @return event ID
+	 */
 	public function createEvent($siteId,$params)	{
+		//Check Params
 		if (!is_array($params)) throwError(ERROR_GENERIC, "Parameters for createEvent must be an array");
 		
+		//Parse DisplayLocation and Category parameters
 		if (!isset($params['Categories'])) throwError(ERROR_PARAMETERS, "Categories must be set",400);
 		$cat = urldecode($params['Categories']);
 		unset($params['Categories']);
@@ -286,7 +303,7 @@ class CurlWrapper	{
 		if ($locString != "")	{
 			$appendString .= $locString;
 		}
-		
+		//Execute request
 		$url = COWS_BASE_PATH . $siteId . COWS_EVENT_PATH;
 		$paramsFinal = http_build_query(array_merge($params,$this->getCowsFields($siteId))) . $appendString . "&siteId=" . $siteId;
 		$out = $this->postWithParameters($url,$paramsFinal);
@@ -306,23 +323,33 @@ class CurlWrapper	{
 		$doc = new DocumentWrapper($out);
 		return $doc->parseEvent();
 	}
-	
+	/**
+	 * Gets the event id for a specific event, used to return the event id from an event that was just created
+	 * 
+	 * @param string $siteId
+	 * @param array $params
+	 * @param Catagories String $cats
+	 * @return multitype:NULL
+	 */
 	private function getEventId($siteId,$params, $cats)	{	
+		//Get jsonbyday json for the date the event was created
 		$paramsNew = array();
 		$url = COWS_BASE_PATH . $siteId . COWS_BASE_EVENT_PATH . "/jsonbyday";
 		$paramsNew['startDate'] = $params['StartDate'];
 		$paramsNew['endDate'] = $params['EndDate'];
 		$paramsNew = http_build_query($paramsNew);
+		//Add category specifiers to the query string
 		foreach($cats as $cat)	{
 			$paramsNew .= "&categories=" . $cat;
 		}
+		//get json
 		$out = $this->getWithParameters($url,$paramsNew);
 		$out = json_decode($out,true);
-		
+	
 		if (!is_array($out))	{
 			throwError(ERROR_COWS, "Invalid json given to find eventId" ,500);
 		}
-		
+		//Look for a matching title/room
 		foreach ($out['e'] as $event)	{
 			if ($event[0]['t'] == $params['EventTitle'] &&
 				$event[0]['l'] == "R" . $params['BuildingAndRoom'])	{

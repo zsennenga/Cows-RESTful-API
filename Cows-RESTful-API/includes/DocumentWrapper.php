@@ -1,8 +1,14 @@
 <?php
+/**
+ * Used to parse HTML responses from COWS
+ * 
+ * @author its-zach
+ *
+ */
 class DocumentWrapper	{
 	private $doc;
 	private $rawData;
-	
+
 	public function __construct($data)	{
 		//Generate Xpath from the html output of a cURL query
 		if ($data == "")	{
@@ -15,7 +21,9 @@ class DocumentWrapper	{
 		libxml_use_internal_errors(false);
 		$this->doc = new DOMXPath($doc);
 	}
-	
+	/**
+	 * Parses a cows response for any errors
+	 */
 	public function findCowsError()	{
 		$div = $this->doc->query('//div[@class="validation-summary-errors"]');
 		
@@ -32,7 +40,11 @@ class DocumentWrapper	{
 			throwError(ERROR_EVENT, "COWS Error: Unknown Problem occurred.",400);
 		}
 	}
-	
+	/**
+	 * Gets a single HTML field value from the document
+	 * @param string $field
+	 * @return field value
+	 */
 	public function getField($field)	{
 		$nodes = $this->doc->query('//input[@name="'.$field.'"]');
 		if ($nodes->length == 0)	{
@@ -43,7 +55,11 @@ class DocumentWrapper	{
 		$val = $node->getAttribute('value');
 		return $val;
 	}
-	
+	/**
+	 * Takes the HTML from a single event and parses it into an associative array
+	 * 
+	 * @return array
+	 */
 	public function parseEvent()	{
 		$retArray = array(
 				"title" => "",
