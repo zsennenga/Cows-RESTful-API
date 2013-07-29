@@ -5,13 +5,13 @@ if (!file_exists('includes/Config.php'))	{
 	exit(0);
 }	
 require_once 'Slim/Slim.php';
-require_once 'includes/config.php';
+require_once 'includes/Config.php';
 require_once 'includes/Utility.php';
 require_once 'includes/DocumentWrapper.php';
 require_once 'includes/SessionWrapper.php';
 require_once 'includes/CurlWrapper.php';
 require_once 'includes/CowsRSS.php';
-require_once 'includes/eventSequence.php';
+require_once 'includes/EventSequence.php';
 require_once 'includes/SimpleMiddleware.php';
 
 set_exception_handler('error_handler');
