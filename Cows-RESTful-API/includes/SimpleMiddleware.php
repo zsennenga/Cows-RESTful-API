@@ -15,10 +15,6 @@ function sessPost()	{
 	else if ($curl->validateTGC($tgc) !== true)	{
 		throwError(ERROR_CAS, "Invalid TGC" . $curl->validateTGC($tgc),400);
 	}
-	
-	if (!$curl->validateSiteID($siteId))	{
-		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
-	}
 }
 
 ?>

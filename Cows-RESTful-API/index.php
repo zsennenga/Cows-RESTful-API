@@ -25,8 +25,6 @@ $app->view(new CowsView());
 
 $app->contentType('application/json');
 
-$env = $app->environment()->getInstance();
-
 /**
  * Dispenses documentation about the api
  */
@@ -87,6 +85,11 @@ $app->get('/', function()	{
 $app->post('/session/:siteId/', 'sessPost', function ($siteId) {
 	$app = \Slim\Slim::getInstance();
 	$env = $app->environment()->getInstance();
+	$curl = CurlWrapper::CreateWithoutCookie();
+	
+	if (!$curl->validateSiteID($siteId))	{
+		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
+	}
 	
 	$tgc = $app->request()->params('tgc');
 	
@@ -126,7 +129,7 @@ $app->map('/event/:siteId/', function ($siteId){
 			if (strtotime($timeStart) === false || strtotime($timeEnd) === false)	{
 				throwError(ERROR_PARAMETERS, "Invalid time range", 400);
 			}
-			else if (strtotime($timeStart) > $strtotime($timeEnd))	{
+			else if (strtotime($timeStart) > strtotime($timeEnd))	{
 				throwError(ERROR_PARAMETERS, "Start time must be before End time", 400);
 			}
 		}
