@@ -12,7 +12,6 @@ require_once 'includes/SessionWrapper.php';
 require_once 'includes/CurlWrapper.php';
 require_once 'includes/CowsRSS.php';
 require_once 'includes/EventSequence.php';
-require_once 'includes/SimpleMiddleware.php';
 
 set_exception_handler('error_handler');
 
@@ -82,16 +81,22 @@ $app->get('/', function()	{
 /**
  * Creates a session on COWS
  */
-$app->post('/session/:siteId/', 'sessPost', function ($siteId) {
+$app->post('/session/:siteId/', function ($siteId) {
 	$app = \Slim\Slim::getInstance();
 	$env = $app->environment()->getInstance();
 	$curl = CurlWrapper::CreateWithoutCookie();
+	$tgc = $app->request()->params('tgc');
+	
+	if ($tgc === null)	{
+		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
+	}
+	else if ($curl->validateTGC($tgc) !== true)	{
+		throwError(ERROR_CAS, "Invalid TGC",400);
+	}
 	
 	if (!$curl->validateSiteID($siteId))	{
 		throwError(ERROR_PARAMETERS, "Invalid site ID",400);
 	}
-	
-	$tgc = $app->request()->params('tgc');
 	
 	$env['sess.instance']->createSession($tgc,$siteId);
 	
