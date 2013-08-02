@@ -87,7 +87,7 @@ $app->post('/session/:siteId/', function ($siteId) {
 	$curl = CurlWrapper::CreateWithoutCookie();
 	$tgc = $app->request()->params('tgc');
 	
-	if ($tgc === null)	{
+	if ($tgc === null || $tgc == '')	{
 		throwError(ERROR_PARAMETERS, "You must include the tgc parameter to create a session",400);
 	}
 	else if ($curl->validateTGC($tgc) !== true)	{

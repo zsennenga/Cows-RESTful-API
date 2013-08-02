@@ -109,12 +109,8 @@ class SessionWrapper	{
 	 * Checks if a signature passed in is valid
 	 * @return boolean
 	 */
-	public static function checkKey ()	{
+	public static function checkKey ($inputeKey, $pubKey, $time)	{
 		$app = new \Slim\Slim();
-		//$_REQUEST is used because I have had issues with Slim not parsing the parameters
-		//when this is called (this is called by middleware)
-		$inputKey = $_REQUEST['signature'];
-		$pubKey = $_REQUEST['publicKey'];
 		
 		//Get private key from the db based on public Key
 		$dbHandle =  new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME, DB_USER, DB_PASS);
@@ -143,7 +139,7 @@ class SessionWrapper	{
 			$data = $data . http_build_query($params);
 		}
 		//Check the keys
-		$outputKey = hash_hmac("sha256",$data,$privKey);
+		$outputKey = hash_hmac("sha256",$data.$time,$privKey);
 		return $outputKey === $inputKey;
 	}
 	

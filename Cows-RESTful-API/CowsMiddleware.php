@@ -30,9 +30,22 @@ class CowsMiddleware extends \Slim\Middleware
 				$end = true;
 			}
 			//Check Signature
-			if (isset($_REQUEST['signature']) != null)	{
-				if (isset($_REQUEST['publicKey']) != null)	{
-					if (!SessionWrapper::checkKey())	{
+			
+			$headers = apache_request_headers();
+  			if(!isset($headers['Authorization'])){
+				throwError(ERROR_PARAMETERS,"No Authorization header in request",400);
+  			}
+			
+  			$auth = $headers['Authorization'];
+			$auth = explode("|",$auth);
+			
+			$signature = $auth[2];
+			$time = $auth[1];
+			$publicKey = $auth[0];
+			
+			if (isset($signature) != null)	{
+				if (isset($publicKey) != null)	{
+					if (!SessionWrapper::checkKey($signature,$publicKey,$time))	{
 						$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
 						$end = true;
 					}

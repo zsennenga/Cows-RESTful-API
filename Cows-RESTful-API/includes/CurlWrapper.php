@@ -274,26 +274,32 @@ class CurlWrapper	{
 		//Check Params
 		if (!is_array($params)) throwError(ERROR_GENERIC, "Parameters for createEvent must be an array");
 		
+		$appendString = "";
+		
 		//Parse DisplayLocation and Category parameters
 		if (!isset($params['Categories'])) throwError(ERROR_PARAMETERS, "Categories must be set",400);
 		$cat = urldecode($params['Categories']);
 		unset($params['Categories']);
 		
 		$catString = "";
-		if (strlen($cat) > 0) $cat = explode("&",$cat);
-		$appendString = "";
-		foreach($cat as $str)	{
-			$catString .= "&Categories=" . urlencode($str);
+		if (strlen($cat) > 0) {
+			$cat = explode("&",$cat);
+			foreach($cat as $str)	{
+				$catString .= "&Categories=" . urlencode($str);
+			}			
 		}
-		
+	
 		$locString = "";
 		if (isset($params['Locations']))	{
 			$loc = urldecode($params['Locations']);
 			unset($params['Locations']);
-			if (strlen($loc) > 0) $loc = explode("&",$loc);
-			foreach($loc as $str)	{
-				$locString .= "&DisplayLocations=" . urlencode($str);
+			if (strlen($loc) > 0) {
+				$loc = explode("&",$loc);
+				foreach($loc as $str)	{
+					$locString .= "&DisplayLocations=" . urlencode($str);
+				}
 			}
+			
 		}
 		
 		if ($catString != "")	{
