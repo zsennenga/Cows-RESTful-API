@@ -127,7 +127,7 @@ class CurlWrapper	{
 	 */
 	public function validateTGC($tgc)	{
 		$params = array("pgt" => $tgc,
-			  "targetService" => "test");
+			  "targetService" => "http://");
 		$resp = $this->getWithParameters(CAS_PROXY_PATH, $params);
 		if (strpos($resp, 'proxyFailure') !== false)	{
 			return false;

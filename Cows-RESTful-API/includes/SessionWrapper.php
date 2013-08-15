@@ -109,7 +109,7 @@ class SessionWrapper	{
 	 * Checks if a signature passed in is valid
 	 * @return boolean
 	 */
-	public static function checkKey ($inputeKey, $pubKey, $time)	{
+	public static function checkKey ($inputKey, $pubKey, $time)	{
 		$app = new \Slim\Slim();
 		
 		//Get private key from the db based on public Key

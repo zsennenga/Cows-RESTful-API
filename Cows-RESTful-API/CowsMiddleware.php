@@ -22,26 +22,25 @@ class CowsMiddleware extends \Slim\Middleware
 			$env['callback.message'] = $app->request()->params('callback');
 		}
 		
-		//Check Timestamp
-		if (isset($_REQUEST['time']))	{
-			$time = $_REQUEST['time'];
+		$headers = apache_request_headers();
+		if(!isset($headers['Authorization'])){
+			$app->render(400, generateError(ERROR_PARAMETERS,"No Authorization header in request " . print_r($headers)));
+			$end = true;
+		}
+		else {
+			$auth = $headers['Authorization'];
+			$auth = explode("|",$auth);
+				
+			$signature = $auth[2];
+			$time = $auth[1];
+			$publicKey = $auth[0];
+		
+			//Check Timestamp
 			if ($time < strtotime("-5 Minutes",time()) || $time > strtotime("+5 Minutes",time()))	{
 				$app->render(400,generateError(ERROR_PARAMETERS, "Signature has expired."));
 				$end = true;
 			}
 			//Check Signature
-			
-			$headers = apache_request_headers();
-  			if(!isset($headers['Authorization'])){
-				throwError(ERROR_PARAMETERS,"No Authorization header in request",400);
-  			}
-			
-  			$auth = $headers['Authorization'];
-			$auth = explode("|",$auth);
-			
-			$signature = $auth[2];
-			$time = $auth[1];
-			$publicKey = $auth[0];
 			
 			if (isset($signature) != null)	{
 				if (isset($publicKey) != null)	{
@@ -56,12 +55,14 @@ class CowsMiddleware extends \Slim\Middleware
 						$siteId = $stuff[2];
 						$curl = CurlWrapper::CreateWithoutCookie();
 						if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
-							throwError(ERROR_PARAMETERS, "SiteID invalid", 400);
+							$app->render(400, generateError(ERROR_PARAMETERS, "SiteID invalid"));
+							$end = true;
 						}
 						try 	{
-							$env['sess.instance'] = new SessionWrapper($_REQUEST['publicKey']);
+							$env['sess.instance'] = new SessionWrapper($publicKey);
 						}
 						catch (Exception $e)	{
+							$app->render(500,generateError(ERROR_GENERIC, $e->getMessage()));
 							$end = true;
 						}
 					}
@@ -75,10 +76,6 @@ class CowsMiddleware extends \Slim\Middleware
 				$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be signed."));
 				$end = true;
 			}
-		}
-		else 	{
-			$app->render(400,generateError(ERROR_PARAMETERS, "All requests must be timestamped."));
-			$end = true;
 		}
 		
 		if (!$end) {
