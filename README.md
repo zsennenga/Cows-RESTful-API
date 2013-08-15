@@ -13,6 +13,12 @@ server calculating a time dependent hash, and the server verifying the two hashe
 At some point before execution, every client is assigned a public/private keypair. The public key is inconsequential,
 but the private key must be kept secret, and after it is initially given to the client, must never be sent over the wire.
 
+Users must use the authorization header to pass variables in the following format:
+
+```php
+$publicKey . "|" . $timeStamp . "|" . $signature;
+```
+
 The signature hash is calculated via
 
 ```php
@@ -43,10 +49,10 @@ window (we use +/- 5 minutes). The server then calculates the signature and matc
   
   All of the Returns entries in the following documentation only refer to successful executions.
   
-  As discussed in the Authentication section, all requests require time, publicKey, and signature paramaters.
-  These are excluded from the lists of paramaters.
+  As discussed in the Authentication section, all requests require time, publicKey, and signature present in 
+  the Authorization header.
   
-  Authentication? refers to the need to run POST /session/:siteid before your query and DELETE /session afterwards
+  "Authentication?" refers to the need to run POST /session/:siteid before your query and DELETE /session afterwards
 
   GET /
   
