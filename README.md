@@ -72,12 +72,12 @@ window (we use +/- 5 minutes). The server then calculates the signature and matc
   
       Parameters: tgc - Ticket Granting Cookie from CAS (required)
       Returns: Nothing
-      Description: Used to generate a key to authenticate to any cows service that requires it.
+      Description: Associates your public key with a cows session.
   DELETE /session
   
       Required Parameters: None
       Returns: Nothing
-      Description: Logs you out from COWS. Deletes all session cookies.
+      Description: Logs you out from COWS. Deletes all session cookies. Disassociates your public key with a cows session.
         
   GET /event
   
