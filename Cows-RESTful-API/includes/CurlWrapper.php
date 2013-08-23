@@ -204,9 +204,12 @@ class CurlWrapper	{
 	public function getCowsFields($siteId)	{
 		$out = $this->getWithParameters(COWS_BASE_PATH . $siteId . COWS_EVENT_PATH);
 		$doc = new DocumentWrapper($out);
+		$phone = $doc->getField("ContactPhone");
+		if ($phone == "" || $phone == null) $phone = "No Phone";
 		return array(
 				"__RequestVerificationToken" => $doc->getField("__RequestVerificationToken"),
 				"ContactName" => $doc->getField("ContactName"),
+				"ContactPhone" => $phone,
 				"ContactEmail" => $doc->getField("ContactEmail"),
 				"EventStatusName" => $doc->getField("EventStatusName")
 		);
