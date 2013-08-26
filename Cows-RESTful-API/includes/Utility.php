@@ -17,6 +17,7 @@ function generateError($code, $message)	{
 function error_handler($e)	{
 	$app = \Slim\Slim::getInstance();
 	$app->render(500,generateError(ERROR_GENERIC,$e->getMessage()));
+	Log::getInstance()->doLog();
 	$app->stop();
 }
 /**
@@ -30,6 +31,7 @@ function throwError($code,$message,$status = null)	{
 	if ($status == null) $status = 500;
 	$app = \Slim\Slim::getInstance();
 	$app->render($status,generateError($code,$message));
+	Log::getInstance()->doLog();
 	$app->stop();
 }
 ?>

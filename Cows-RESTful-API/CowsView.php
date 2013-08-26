@@ -1,4 +1,5 @@
 <?php
+require_once 'includes/Log.php';
 /**
  * 
  * Generates all responses for the API
@@ -20,6 +21,8 @@ class CowsView extends \Slim\View
     	$out = json_encode($out);
     	
     	if ($out === null) $out = json_encode(array());
+    	
+    	Log::getInstance()->setResp($out);
     	
     	if ($env['callback.need'] !== false)	{
     		return $env['callback.message'] . "(" . $out . ")"; 

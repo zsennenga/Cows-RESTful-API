@@ -29,7 +29,7 @@ class SessionWrapper	{
 		$this->execute($query);
 		$this->sessionVar = $query->fetch();
 		if ($this->sessionVar === false)	{
-			throwError(ERROR_PARAMS, "Invalid public key", 400);
+			throwError(ERROR_PARAMETERS, "Invalid public key", 400);
 		}
 	}
 	/**

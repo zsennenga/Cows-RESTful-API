@@ -1,6 +1,7 @@
 <?php
 
 require_once 'includes/Utility.php';
+require_once 'includes/Log.php';
 /**
  * Handles variable validation and parses necessary variables
  * @author its-zach
@@ -34,6 +35,8 @@ class CowsMiddleware extends \Slim\Middleware
 			$signature = $auth[2];
 			$time = $auth[1];
 			$publicKey = $auth[0];
+			
+			Log::getInstance()->setKey($publicKey);
 		
 			//Check Timestamp
 			if ($time < strtotime("-5 Minutes",time()) || $time > strtotime("+5 Minutes",time()))	{
@@ -48,22 +51,23 @@ class CowsMiddleware extends \Slim\Middleware
 						$app->render(400,generateError(ERROR_PARAMETERS, "Invalid signature"));
 						$end = true;
 					}
-			
-					$path = $app->request()->getPathInfo();
-					if ($path != "/" && $path != "/error" && $path != "/error/")	{
-						$stuff = explode("/",$path);
-						$siteId = $stuff[2];
-						$curl = CurlWrapper::CreateWithoutCookie();
-						if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
-							$app->render(400, generateError(ERROR_PARAMETERS, "SiteID invalid"));
-							$end = true;
-						}
-						try 	{
-							$env['sess.instance'] = new SessionWrapper($publicKey);
-						}
-						catch (Exception $e)	{
-							$app->render(500,generateError(ERROR_GENERIC, $e->getMessage()));
-							$end = true;
+					else	{
+						$path = $app->request()->getPathInfo();
+						if ($path != "/" && $path != "/error" && $path != "/error/")	{
+							$stuff = explode("/",$path);
+							$siteId = $stuff[2];
+							$curl = CurlWrapper::CreateWithoutCookie();
+							if (!$curl->validateSiteID($siteId) && !($path == "/session" || $path == "/session/"))	{
+								$app->render(400, generateError(ERROR_PARAMETERS, "SiteID invalid"));
+								$end = true;
+							}
+							try 	{
+								$env['sess.instance'] = new SessionWrapper($publicKey);
+							}
+							catch (Exception $e)	{
+								$app->render(500,generateError(ERROR_GENERIC, $e->getMessage()));
+								$end = true;
+							}
 						}
 					}
 				}
@@ -80,6 +84,9 @@ class CowsMiddleware extends \Slim\Middleware
 		
 		if (!$end) {
 			$this->next->call();
+		}
+		else	{
+			Log::getInstance()->doLog();
 		}
 	}
 }

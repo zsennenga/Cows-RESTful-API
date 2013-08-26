@@ -1,10 +1,12 @@
 <?php
 define("DB_HOST", "dbHost");
-define("DB_NAME", "dbName");
-define("DB_TABLE", "dbTable");
 define("DB_USER", "dbUser");
 define("DB_PASS", "dbPass");
+
 // DO NOT EDIT BELOW THIS LINE
+define("DB_NAME", "cowsrest");
+define("DB_TABLE", "cowsrest");
+define("DB_TABLE", "cowsrestlog");
 define("COWS_LOGIN_PATH","/Account/LogOn");
 define("COWS_EVENT_PATH","/Event/Create");
 define("COWS_BASE_EVENT_PATH","/Event");

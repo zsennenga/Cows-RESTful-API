@@ -29,6 +29,7 @@ $app->contentType('application/json');
  */
 $app->get('/', function()	{
 	$app = \Slim\Slim::getInstance();
+	
 	if ($app->request()->get("format") == "json") {
 		$session = array(
 				"POST" => array(
@@ -107,6 +108,7 @@ $app->post('/session/:siteId/', function ($siteId) {
  */
 $app->delete('/session/', function() {
 	$app = \Slim\Slim::getInstance();
+	
 	$env = $app->environment()->getInstance();
 	$env['sess.instance']->destroySession();
 	$app->render(200,array());
@@ -231,4 +233,10 @@ $app->notFound(function ()	{
 	throwError(ERROR_GENERIC, "Invalid Route. Please refer to the documentation for a list of valid routes.", 404);
 });
 
+Log::getInstance()->setRoute($app->request()->getPathInfo(),$app->request()->getMethod());
+Log::getInstance()->setParams($app->request()->params());
+
 $app->run();
+
+Log::getInstance()->doLog();
+?>

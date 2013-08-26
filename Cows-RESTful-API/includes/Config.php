@@ -1,7 +1,8 @@
 <?php
 define("DB_HOST", "localhost");
-define("DB_NAME", "TestDB");
+define("DB_NAME", "cowsrest");
 define("DB_TABLE", "cowsrest");
+define("DB_TABLE_LOG", "cowsrestlog");
 define("DB_USER", "root");
 define("DB_PASS", "");
 // DO NOT EDIT BELOW THIS LINE

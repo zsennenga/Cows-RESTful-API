@@ -1,12 +1,19 @@
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
+--
+-- Database: `cowsREST`
+--
+CREATE DATABASE IF NOT EXISTS `cowsREST` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+USE `cowsREST`;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `cowsrest`
+--
+
+DROP TABLE IF EXISTS `cowsrest`;
 CREATE TABLE IF NOT EXISTS `cowsrest` (
   `publicKey` varchar(512) NOT NULL,
   `privateKey` varchar(512) NOT NULL,
@@ -16,6 +23,21 @@ CREATE TABLE IF NOT EXISTS `cowsrest` (
   PRIMARY KEY (`publicKey`,`privateKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cowsrestlog`
+--
+
+DROP TABLE IF EXISTS `cowsrestlog`;
+CREATE TABLE IF NOT EXISTS `cowsrestlog` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip` varchar(64) NOT NULL,
+  `publicKey` varchar(128) NOT NULL,
+  `route` varchar(128) NOT NULL,
+  `method` varchar(16) NOT NULL,
+  `params` varchar(1024) NOT NULL,
+  `response` varchar(4096) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;
